@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 
 from openai_helper import OpenAIHelper, default_max_tokens
-from telegram_bot import ChatGPTTelegramBot
+from telegram_bot import SDBot
 
 
 def main():
@@ -63,9 +63,16 @@ def main():
         'transcription_price': float(os.environ.get('TOKEN_PRICE', 0.006)),
     }
 
+    sdwebuiapi_config = {
+        'host': os.environ['HOST'],
+        'port': int(os.environ.get('port', '80')),
+        'allowed_user_ids': os.environ.get('ALLOWED_TELEGRAM_USER_IDS', '*'),
+        'use_https': os.environ.get('USE_HTTPS', 'false').lower() == 'true',
+    }
+
     # Setup and run ChatGPT and Telegram bot
     openai_helper = OpenAIHelper(config=openai_config)
-    telegram_bot = ChatGPTTelegramBot(config=telegram_config, openai=openai_helper)
+    telegram_bot = SDBot(config=telegram_config, openai=openai_helper)
     telegram_bot.run()
 
 
