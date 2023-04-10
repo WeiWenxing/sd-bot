@@ -1,6 +1,7 @@
 import logging
 import webuiapi
-
+from PIL import Image, PngImagePlugin
+from io import BytesIO
 
 def byteBufferOfImage(img, mode):
     img_buffer = BytesIO()

@@ -1,5 +1,9 @@
 import logging
 import itertools
+import datetime
+import time
+from PIL import Image, PngImagePlugin
+from io import BytesIO
 
 import telegram
 from telegram import constants, BotCommandScopeAllGroupChats
@@ -8,8 +12,10 @@ from telegram.error import RetryAfter, TimedOut
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, \
     filters, InlineQueryHandler, Application, CallbackContext
 
-from webuiapi_helper import WebUIApiHelper
+from webuiapi_helper import WebUIApiHelper, byteBufferOfImage, saveImage
 
+
+#logging.basicConfig(level=logging.DEBUG)
 
 def message_text(message: Message) -> str:
     """
@@ -47,8 +53,7 @@ class SDBot:
         self.group_commands = [
             BotCommand(command='chat', description='Chat with the bot!')
         ] + self.commands
-        self.disallowed_message = "Sorry, you are not allowed to use this bot. You can check out the source code at " \
-                                  "https://github.com/n3d1117/chatgpt-telegram-bot"
+        self.disallowed_message = "Sorry, you are not allowed to use this bot. You can connect to @aipicfree"
         self.budget_limit_message = "Sorry, you have reached your monthly usage limit."
         self.usage = {}
         self.last_message = {}
@@ -67,15 +72,58 @@ class SDBot:
         await update.message.reply_text(help_text, disable_web_page_preview=True)
 
     async def draw(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
         await update.message.reply_text("draw")
 
     async def model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
         await update.message.reply_text("change model")
 
     async def dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
         await update.message.reply_text("change clothes")
 
     async def trip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            logging.info("Message contains one photo.")
+            logging.info(message)
+            logging.info(message.photo)
+            time = datetime.datetime.now()
+            path = f'download/photo-{time}.jpg'.replace(" ", "_")
+            logging.info(f"{path}")
+            file = await bot.getFile(message.photo[-1].file_id)
+            logging.info(file)
+            photo_path = await file.download_to_drive(custom_path=path)
+            logging.info(photo_path)
+            with open(photo_path, "rb") as f:
+                file_bytes = f.read()
+            img = Image.open(BytesIO(file_bytes))
+
+            rgb_values = "229,205,197"
+            for i in range(3):
+                img = self.webapihelper.clothes_op(img, rgb_values, 100.0 - i*20).image
+                logging.info(f"=============================clothes {i}===============================")
+                await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+
+            for i in range(3):
+                img = self.webapihelper.nude_op(img, rgb_values, 120.0 - i*30).image
+                logging.debug(f"=============================nude {i}===============================")
+                await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
         await update.message.reply_text("trip")
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -200,10 +248,7 @@ class SDBot:
         application.add_handler(CommandHandler('dress', self.dress))
 
         application.add_handler(MessageHandler(filters.PHOTO, self.trip))
-        application.add_handler(InlineQueryHandler(self.inline_query, chat_types=[
-            constants.ChatType.GROUP, constants.ChatType.SUPERGROUP
-        ]))
 
-        application.add_error_handler(self.error_handler)
+        #application.add_error_handler(self.error_handler)
 
         application.run_polling()
