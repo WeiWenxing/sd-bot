@@ -1,14 +1,12 @@
 import logging
 import itertools
 import datetime
-import time
 from PIL import Image, PngImagePlugin
 from io import BytesIO
 
 import telegram
 from telegram import constants, BotCommandScopeAllGroupChats
 from telegram import Message, MessageEntity, Update, InlineQueryResultArticle, InputTextMessageContent, BotCommand, ChatMember
-from telegram.error import RetryAfter, TimedOut
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, \
     filters, InlineQueryHandler, Application, CallbackContext
 
@@ -101,15 +99,14 @@ class SDBot:
         bot = context.bot
         if message.photo:
             logging.info("Message contains one photo.")
-            logging.info(message)
-            logging.info(message.photo)
-            time = datetime.datetime.now()
-            path = f'download/photo-{time}.jpg'.replace(" ", "_")
+            date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+            path = f'download/photo_{date}.jpg'
             logging.info(f"{path}")
             file = await bot.getFile(message.photo[-1].file_id)
             logging.info(file)
             photo_path = await file.download_to_drive(custom_path=path)
             logging.info(photo_path)
+
             with open(photo_path, "rb") as f:
                 file_bytes = f.read()
             img = Image.open(BytesIO(file_bytes))
@@ -122,9 +119,8 @@ class SDBot:
 
             for i in range(3):
                 img = self.webapihelper.nude_op(img, rgb_values, 120.0 - i*30).image
-                logging.debug(f"=============================nude {i}===============================")
+                logging.info(f"=============================nude {i}===============================")
                 await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
-        await update.message.reply_text("trip")
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
