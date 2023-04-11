@@ -6,14 +6,13 @@ from io import BytesIO
 
 import telegram
 from telegram import constants, BotCommandScopeAllGroupChats
-from telegram import Message, MessageEntity, Update, InlineQueryResultArticle, InputTextMessageContent, BotCommand, ChatMember
+from telegram import Message, MessageEntity, Update, \
+    BotCommand, ChatMember, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, \
-    filters, InlineQueryHandler, Application, CallbackContext
+    filters, InlineQueryHandler, Application, CallbackContext, CallbackQueryHandler
 
 from webuiapi_helper import WebUIApiHelper, byteBufferOfImage, saveImage
 
-
-#logging.basicConfig(level=logging.DEBUG)
 
 def message_text(message: Message) -> str:
     """
@@ -81,7 +80,48 @@ class SDBot:
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        await update.message.reply_text("change model")
+        keyboard = [
+            [
+                InlineKeyboardButton("GF2", callback_data="GuoFeng2"),
+                InlineKeyboardButton("GF3.2", callback_data="GuoFeng3.2"),
+                InlineKeyboardButton("chill", callback_data="chilloutmix_NiPrunedFp32Fix"),
+                InlineKeyboardButton("Basil", callback_data="Basil_mix_fixed"),
+                InlineKeyboardButton("Inpaint", callback_data="uberRealisticPornMerge_urpmv13Inpainting"),
+            ],
+            #[InlineKeyboardButton("Option 3", callback_data="3")],
+        ]
+
+        old_model = self.webapihelper.api.util_get_current_model()
+        logging.info(old_model)
+
+        # get list of available models
+        logging.info("refresh checkpoints")
+        self.webapihelper.api.refresh_checkpoints()
+        logging.info("refresh checkpoints end")
+        models = self.webapihelper.api.util_get_model_names()
+        logging.info(models)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text("change model: ", reply_markup=reply_markup)
+
+    async def checkpoints(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        model = query.data
+        logging.info(model)
+        message = query.message
+        logging.info(message)
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+        # 获取原始消息对象
+        K = await message.reply_text("Please Wait 1-2 Minutes")
+        # set model (find closest match)
+        self.webapihelper.api.util_set_model(f'{model}')
+        # wait for job complete
+        self.webapihelper.api.util_wait_for_ready()
+
+        await K.delete()
+
+        await message.reply_text("change checkpoints end")
 
     async def dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -89,6 +129,7 @@ class SDBot:
             await self.send_disallowed_message(update, context)
             return
         await update.message.reply_text("change clothes")
+
 
     async def trip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -111,16 +152,20 @@ class SDBot:
                 file_bytes = f.read()
             img = Image.open(BytesIO(file_bytes))
 
-            rgb_values = "229,205,197"
-            for i in range(3):
-                img = self.webapihelper.clothes_op(img, rgb_values, 100.0 - i*20).image
-                logging.info(f"=============================clothes {i}===============================")
-                await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            # rgb_values = "229,205,197"
+            rgb_values = "pink"
+            # for i in range(1):
+            #     img = self.webapihelper.clothes_op(img, rgb_values, 100.0 - i*20).image
+            #     logging.info(f"=============================clothes {i}===============================")
+            #     await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
-            for i in range(3):
-                img = self.webapihelper.nude_op(img, rgb_values, 120.0 - i*30).image
-                logging.info(f"=============================nude {i}===============================")
-                await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            # for i in range(1):
+            #     img = self.webapihelper.nude_op(img, rgb_values, 120.0 - i*30).image
+            #     logging.info(f"=============================nude {i}===============================")
+            #     await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+
+            img = self.webapihelper.bg_op(img, 'beach').image
+            await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -242,6 +287,8 @@ class SDBot:
         application.add_handler(CommandHandler('model', self.model))
         application.add_handler(CommandHandler('start', self.help))
         application.add_handler(CommandHandler('dress', self.dress))
+        #application.add_handler(CallbackQueryHandler(callback=self.checkpoints, pattern='GuoFeng|chill|Basil|Inpaint'))
+        application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
 
         application.add_handler(MessageHandler(filters.PHOTO, self.trip))
 
