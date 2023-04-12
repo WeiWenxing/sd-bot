@@ -85,8 +85,8 @@ class SDBot:
                 InlineKeyboardButton("GF2", callback_data="GuoFeng2"),
                 InlineKeyboardButton("GF3.2", callback_data="GuoFeng3.2"),
                 InlineKeyboardButton("chill", callback_data="chilloutmix_NiPrunedFp32Fix"),
-                InlineKeyboardButton("Basil", callback_data="Basil_mix_fixed"),
-                InlineKeyboardButton("Inpaint", callback_data="uberRealisticPornMerge_urpmv13Inpainting"),
+                InlineKeyboardButton("GF3.2Inp", callback_data="GuoFeng3.2Inpainting.inpainting"),
+                InlineKeyboardButton("ubInp", callback_data="uberRealisticPornMerge_urpmv13Inpainting"),
             ],
             #[InlineKeyboardButton("Option 3", callback_data="3")],
         ]
@@ -110,6 +110,7 @@ class SDBot:
         logging.info(model)
         message = query.message
         logging.info(message)
+
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
         # 获取原始消息对象
@@ -128,8 +129,58 @@ class SDBot:
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        await update.message.reply_text("change clothes")
+        keyboard = [
+            [
+                InlineKeyboardButton("礼服", callback_data="see-through:evening dress, bare shoulders,"),
+                InlineKeyboardButton("旗袍", callback_data="see-through, cheongsam,"),
+                InlineKeyboardButton("国风", callback_data="hanfu, sheer tulle, see-through,"),
+                InlineKeyboardButton("婚纱", callback_data="wedding dress"),
+                InlineKeyboardButton("泳装", callback_data="bikini"),
+            ],
+            [
+                InlineKeyboardButton("运动服", callback_data="sportswear"),
+                InlineKeyboardButton("铠甲", callback_data="armor,"),
+                InlineKeyboardButton("内衣", callback_data="hot underware,"),
+                InlineKeyboardButton("制服", callback_data="police_uniform,"),
+                InlineKeyboardButton("学院", callback_data="school_uniform,"),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        self.webapihelper.cache_image = await self.getImgFromMsg(context.bot, update.message)
+        await update.message.reply_text("change clothes: ", reply_markup=reply_markup)
 
+    async def clothes(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        clothes = query.data
+        logging.info(clothes)
+        message = query.message
+        logging.info(message)
+        bot = context.bot
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if self.webapihelper.cache_image is not None:
+            result = self.webapihelper.clothes_op(self.webapihelper.cache_image, clothes, 60.0)
+            for img in result.images:
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+        else:
+            logging.info("no photo!")
+
+    async def getImgFromMsg(self, bot, message):
+        logging.info("Message contains one photo.")
+        date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+        path = f'download/clothes_{date}.jpg'
+        logging.info(f"{path}")
+        file = await bot.getFile(message.photo[-1].file_id)
+        logging.info(file)
+        photo_path = await file.download_to_drive(custom_path=path)
+        logging.info(photo_path)
+        with open(photo_path, "rb") as f:
+            file_bytes = f.read()
+        img_ori = Image.open(BytesIO(file_bytes))
+        return img_ori
 
     async def trip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -150,22 +201,17 @@ class SDBot:
 
             with open(photo_path, "rb") as f:
                 file_bytes = f.read()
-            img = Image.open(BytesIO(file_bytes))
+            img_ori = Image.open(BytesIO(file_bytes))
 
-            # rgb_values = "229,205,197"
-            rgb_values = "pink"
-            # for i in range(1):
-            #     img = self.webapihelper.clothes_op(img, rgb_values, 100.0 - i*20).image
-            #     logging.info(f"=============================clothes {i}===============================")
-            #     await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            for i in range(1):
+                result = self.webapihelper.nude_op(img_ori)
+                logging.info(f"=============================nude {i}===============================")
+                await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+                await message.reply_photo(byteBufferOfImage(result.images[1], 'PNG'))
+                await message.reply_photo(byteBufferOfImage(result.images[2], 'JPEG'))
 
-            # for i in range(1):
-            #     img = self.webapihelper.nude_op(img, rgb_values, 120.0 - i*30).image
-            #     logging.info(f"=============================nude {i}===============================")
-            #     await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
-
-            img = self.webapihelper.bg_op(img, 'beach').image
-            await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            # img = self.webapihelper.bg_op(img, 'beach').image
+            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -286,11 +332,13 @@ class SDBot:
         application.add_handler(CommandHandler('help', self.help))
         application.add_handler(CommandHandler('model', self.model))
         application.add_handler(CommandHandler('start', self.help))
-        application.add_handler(CommandHandler('dress', self.dress))
-        #application.add_handler(CallbackQueryHandler(callback=self.checkpoints, pattern='GuoFeng|chill|Basil|Inpaint'))
-        application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
+        application.add_handler(CallbackQueryHandler(callback=self.checkpoints, pattern='GuoFeng|chill|uber'))
+        # application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
+        application.add_handler(CallbackQueryHandler(callback=self.clothes, pattern='.*dress|.*suit|.*wear|.*uniform|armor|hot|bikini|see|.*hanfu'))
+        # application.add_handler(CallbackQueryHandler(callback=self.clothes))
 
-        application.add_handler(MessageHandler(filters.PHOTO, self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.dress))
 
         #application.add_error_handler(self.error_handler)
 
