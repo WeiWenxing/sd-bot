@@ -101,7 +101,7 @@ class SDBot:
         models = self.webapihelper.api.util_get_model_names()
         logging.info(models)
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text("change model: ", reply_markup=reply_markup)
+        await update.message.reply_text(f"cur model: {old_model}\nchange model: ", reply_markup=reply_markup)
 
     async def checkpoints(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
