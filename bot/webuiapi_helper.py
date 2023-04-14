@@ -45,7 +45,7 @@ class WebUIApiHelper:
         return result
 
     def bg_op(self, photo, bg):
-        prompt_positive = f'[txt2mask mode="add" show precision=100.0 padding=10.0 smoothing=20.0 negative_mask="face|body|dress|arms|legs|hair" neg_precision=100.0 neg_padding=-4.0 neg_smoothing=20.0]background|scene[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, ({bg}:1.4),an extremely delicate and beautiful, extremely detailed,intricate,'
+        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=10.0 smoothing=20.0 negative_mask="face|body|dress|arms|legs|hair" neg_precision=100.0 neg_padding=-4.0 neg_smoothing=20.0]background|scene[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, ({bg}:1.4),an extremely delicate and beautiful, extremely detailed,intricate,'
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=0, steps=10)
         return result
