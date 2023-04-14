@@ -75,7 +75,8 @@ class SDBot:
             return
         await update.message.reply_text("draw")
 
-    async def model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    async def show_model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
@@ -103,7 +104,7 @@ class SDBot:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(f"cur model: {old_model}\nchange model: ", reply_markup=reply_markup)
 
-    async def checkpoints(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def set_model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         logging.info(query)
         model = query.data
@@ -124,7 +125,7 @@ class SDBot:
 
         await message.reply_text("change checkpoints end")
 
-    async def dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def show_dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
@@ -149,7 +150,7 @@ class SDBot:
         self.webapihelper.cache_image = await self.getImgFromMsg(context.bot, update.message)
         await update.message.reply_text("change clothes: ", reply_markup=reply_markup)
 
-    async def clothes(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def draw_dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         logging.info(query)
         clothes = query.data
@@ -165,6 +166,44 @@ class SDBot:
             result = self.webapihelper.clothes_op(self.webapihelper.cache_image, clothes, 60.0)
             for img in result.images:
                 await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+        else:
+            logging.info("no photo!")
+
+    async def show_bg(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        keyboard = [
+            [
+                InlineKeyboardButton("海边", callback_data="sea beach,"),
+                InlineKeyboardButton("草地", callback_data="grassland,"),
+                InlineKeyboardButton("太空", callback_data="space,"),
+                InlineKeyboardButton("山脉", callback_data="mountain,"),
+                InlineKeyboardButton("街道", callback_data="street,"),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        self.webapihelper.cache_image = await self.getImgFromMsg(context.bot, update.message)
+        await update.message.reply_text("change background: ", reply_markup=reply_markup)
+
+    async def draw_bg(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        bg = query.data
+        logging.info(bg)
+        message = query.message
+        logging.info(message)
+        bot = context.bot
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if self.webapihelper.cache_image is not None:
+            result = self.webapihelper.bg_op(self.webapihelper.cache_image, bg)
+            for img in result.images:
+                type_mode = 'PNG' if img.mode == "RGBA" else 'JPEG'
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, type_mode), caption=f'{bg}')
         else:
             logging.info("no photo!")
 
@@ -330,15 +369,19 @@ class SDBot:
 
         application.add_handler(CommandHandler('draw', self.draw))
         application.add_handler(CommandHandler('help', self.help))
-        application.add_handler(CommandHandler('model', self.model))
+        application.add_handler(CommandHandler('model', self.show_model))
         application.add_handler(CommandHandler('start', self.help))
-        application.add_handler(CallbackQueryHandler(callback=self.checkpoints, pattern='GuoFeng|chill|uber'))
-        # application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
-        application.add_handler(CallbackQueryHandler(callback=self.clothes, pattern='.*dress|.*suit|.*wear|.*uniform|armor|hot|bikini|see|.*hanfu'))
-        # application.add_handler(CallbackQueryHandler(callback=self.clothes))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress'), self.trip))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.dress))
+        application.add_handler(CallbackQueryHandler(callback=self.set_model, pattern='GuoFeng|chill|uber'))
+        # application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_dress, pattern='.*dress|.*suit|.*wear|.*uniform|armor|hot|bikini|see|.*hanfu'))
+        # application.add_handler(CallbackQueryHandler(callback=self.clothes))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
+
+
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
 
         #application.add_error_handler(self.error_handler)
 
