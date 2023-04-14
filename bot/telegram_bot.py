@@ -207,11 +207,11 @@ class SDBot:
                 result = self.webapihelper.nude_op(img_ori)
                 logging.info(f"=============================nude {i}===============================")
                 await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
-                await message.reply_photo(byteBufferOfImage(result.images[1], 'PNG'))
-                await message.reply_photo(byteBufferOfImage(result.images[2], 'JPEG'))
+            #     await message.reply_photo(byteBufferOfImage(result.images[1], 'PNG'))
+            #     await message.reply_photo(byteBufferOfImage(result.images[2], 'JPEG'))
 
-            # img = self.webapihelper.bg_op(img, 'beach').image
-            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            img = self.webapihelper.clothes_op(img_ori, 'hot underware,', 60.0).image
+            await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
