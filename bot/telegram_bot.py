@@ -242,13 +242,34 @@ class SDBot:
                 file_bytes = f.read()
             img_ori = Image.open(BytesIO(file_bytes))
 
-            for i in range(1):
-                result = self.webapihelper.nude_op(img_ori)
-                logging.info(f"=============================nude {i}===============================")
-                await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
-            #     await message.reply_photo(byteBufferOfImage(result.images[1], 'PNG'))
-            #     await message.reply_photo(byteBufferOfImage(result.images[2], 'JPEG'))
+            img = img_ori
+            # logging.info(f"=============================nude upper===============================")
+            # img = self.webapihelper.nude_upper_op(img).image
+            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
+            # logging.info(f"=============================nude lower===============================")
+            # result = self.webapihelper.nude_lower_op(img)
+            # for image in result.images:
+            #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+            #     await message.reply_photo(byteBufferOfImage(image, type_mode))
+
+            # logging.info(f"=============================nude repair===============================")
+            # img = self.webapihelper.nude_repair_op(img, 70.0, 0.45).image
+            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+
+            logging.info(f"=============================nude full===============================")
+            result = self.webapihelper.nude_op(img_ori)
+            for image in result.images:
+                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                await message.reply_photo(byteBufferOfImage(image, type_mode))
+
+            logging.info(f"=============================nude breasts===============================")
+            result = self.webapihelper.nude_breast_op(result.image, 100, 1.0)
+            for image in result.images:
+                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                await message.reply_photo(byteBufferOfImage(image, type_mode))
+
+            logging.info(f"=============================under wear===============================")
             img = self.webapihelper.clothes_op(img_ori, 'hot underware,', 60.0).image
             await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
