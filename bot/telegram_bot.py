@@ -1,7 +1,7 @@
 import logging
 import itertools
 import datetime
-from PIL import Image, PngImagePlugin
+from PIL import Image, PngImagePlugin, ImageDraw, ImageFont, ImageEnhance
 from io import BytesIO
 
 import telegram
@@ -12,6 +12,8 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
     filters, InlineQueryHandler, Application, CallbackContext, CallbackQueryHandler
 
 from webuiapi_helper import WebUIApiHelper, byteBufferOfImage, saveImage
+
+WATERMARK = r'fake pic by @aipicfree'
 
 
 def message_text(message: Message) -> str:
@@ -27,6 +29,38 @@ def message_text(message: Message) -> str:
 
     return message_text if len(message_text) > 0 else ''
 
+
+def add_txt_to_img(image: Image, txt, font_size=60, angle=0, color=(128, 128, 128), alpha=0.2) -> Image:
+    w, h = image.size
+    # text_pic = Image.new('RGBA', (4 * h, 4 * w), (255, 255, 255, 255))
+    text_pic = Image.new('RGBA', (h, w), (255, 255, 255, 255))
+
+    fnt = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuMono-B.ttf", font_size)
+
+    text_d = ImageDraw.Draw(text_pic)
+
+    # a, b 分别控制水印的列间距和行间距，默认为字体的2倍列距，4倍行距
+
+    # a, b = 1, 6
+    # for x in range(10, text_pic.size[0] - 10, a * font_size * len(txt)):
+    #     for y in range(10, text_pic.size[1] - 10, b * font_size):
+    #         text_d.multiline_text((x, y), txt, fill=color, font=fnt)
+
+    text_d.text((40, 10), txt, fill=color, font=fnt)
+    # text_d.text((40, h - 6*font_size), txt, fill=color, font=fnt)
+
+    # 旋转水印
+    text_pic = text_pic.rotate(angle)
+    # 截取水印部分图片
+    # text_pic = text_pic.crop((h, w, 3 * h, 3 * w))
+    text_pic = text_pic.resize(image.size)
+    text_pic = text_pic.convert('RGB')
+    logging.info(f"text_pic: {text_pic.size}, image: {image.size}")
+    result = Image.blend(image, text_pic, alpha)
+    result = result.convert('RGB')
+    enhance = ImageEnhance.Contrast(result)
+    result = enhance.enhance(1.0 / (1 - alpha))
+    return result
 
 class SDBot:
     """
@@ -242,6 +276,10 @@ class SDBot:
                 file_bytes = f.read()
             img_ori = Image.open(BytesIO(file_bytes))
 
+            # img = add_txt_to_img(img_ori, WATERMARK)
+            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            # return
+
             img = img_ori
             # logging.info(f"=============================nude upper===============================")
             # img = self.webapihelper.nude_upper_op(img).image
@@ -261,17 +299,20 @@ class SDBot:
             result = self.webapihelper.nude_op(img_ori)
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
                 await message.reply_photo(byteBufferOfImage(image, type_mode))
 
             logging.info(f"=============================nude breasts===============================")
             result = self.webapihelper.nude_breast_op(result.image, 100, 1.0)
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
                 await message.reply_photo(byteBufferOfImage(image, type_mode))
 
-            logging.info(f"=============================under wear===============================")
-            img = self.webapihelper.clothes_op(img_ori, 'hot underware,', 60.0).image
-            await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+            logging.info(f"=============================underwear===============================")
+            image = self.webapihelper.clothes_op(img_ori, 'hot underware,', 60.0).image
+            # image = add_txt_to_img(image, WATERMARK)
+            await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -340,6 +381,7 @@ class SDBot:
             logging.info(f'Group chat messages from user {update.message.from_user.name} '
                 f'(id: {update.message.from_user.id}) are not allowed')
 
+        logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id}  is not allowed!!')
         return False
 
     def is_admin(self, update: Update) -> bool:
