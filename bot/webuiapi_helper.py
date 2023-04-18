@@ -73,9 +73,23 @@ class WebUIApiHelper:
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
         return result
 
-    def nude_breast_op(self, photo, precision, denoising_strength):
+    def nude_breast_op(self, photo, precision, denoising_strength, batch_count):
         prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]breasts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin,  clavicle, large breasts, cleavage, slim waist, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>'
 
         logging.info(f'prompt_positive: {prompt_positive}')
-        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
+        return result
+
+    def breast_repair_op(self, photo, precision, denoising_strength, batch_count):
+        prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]breasts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, large breasts, perfect breasts, smooth fair skin, procelain skin, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>'
+
+        logging.info(f'prompt_positive: {prompt_positive}')
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
+        return result
+
+    def hand_repair_op(self, photo, precision, denoising_strength, batch_count):
+        prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]hands[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, extremely delicate facial, normal hands, normal fingers, smooth fair skin, extremely detailed,intricate,'
+
+        logging.info(f'prompt_positive: {prompt_positive}')
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
         return result
