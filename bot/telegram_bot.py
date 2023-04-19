@@ -263,18 +263,7 @@ class SDBot:
         message = update.message
         bot = context.bot
         if message.photo:
-            logging.info("Message contains one photo.")
-            date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-            path = f'download/photo_{date}.jpg'
-            logging.info(f"{path}")
-            file = await bot.getFile(message.photo[-1].file_id)
-            logging.info(file)
-            photo_path = await file.download_to_drive(custom_path=path)
-            logging.info(photo_path)
-
-            with open(photo_path, "rb") as f:
-                file_bytes = f.read()
-            img_ori = Image.open(BytesIO(file_bytes))
+            img_ori = await self.down_image(bot, message)
 
             # img = add_txt_to_img(img_ori, WATERMARK)
             # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
@@ -304,14 +293,14 @@ class SDBot:
 
             img = result.image
             logging.info(f"=============================nude breasts===============================")
-            result = self.webapihelper.nude_breast_op(img, 100, 0.7, 1)
+            result = self.webapihelper.breast_repair_op(img, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1)
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
                 await message.reply_photo(byteBufferOfImage(image, type_mode))
 
             logging.info(f"=============================underwear===============================")
-            image = self.webapihelper.clothes_op(img_ori, 'hot underware,', 60.0).image
+            image = self.webapihelper.clothes_op(img_ori, 'hot lace underware,', 60.0).image
             # image = add_txt_to_img(image, WATERMARK)
             await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -323,22 +312,11 @@ class SDBot:
         message = update.message
         bot = context.bot
         if message.photo:
-            logging.info("Message contains one photo.")
-            date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-            path = f'download/photo_{date}.jpg'
-            logging.info(f"{path}")
-            file = await bot.getFile(message.photo[-1].file_id)
-            logging.info(file)
-            photo_path = await file.download_to_drive(custom_path=path)
-            logging.info(photo_path)
-
-            with open(photo_path, "rb") as f:
-                file_bytes = f.read()
-            img_ori = Image.open(BytesIO(file_bytes))
+            img_ori = await self.down_image(bot, message)
 
             img = img_ori
             logging.info(f"=============================repair breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, 85, 0.7, 2)
+            result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -350,24 +328,61 @@ class SDBot:
         message = update.message
         bot = context.bot
         if message.photo:
-            logging.info("Message contains one photo.")
-            date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-            path = f'download/photo_{date}.jpg'
-            logging.info(f"{path}")
-            file = await bot.getFile(message.photo[-1].file_id)
-            logging.info(file)
-            photo_path = await file.download_to_drive(custom_path=path)
-            logging.info(photo_path)
-
-            with open(photo_path, "rb") as f:
-                file_bytes = f.read()
-            img_ori = Image.open(BytesIO(file_bytes))
+            img_ori = await self.down_image(bot, message)
 
             img = img_ori
             logging.info(f"=============================repair hand===============================")
             result = self.webapihelper.hand_repair_op(img, 100, 0.7, 2)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def lace(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            img_ori = await self.down_image(bot, message)
+
+            img = img_ori
+            logging.info(f"=============================lace===============================")
+            result = self.webapihelper.lace_op(img, 100, 1, 4)
+            for image in result.images:
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def upper(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            img_ori = await self.down_image(bot, message)
+
+            img = img_ori
+            logging.info(f"=============================upper nude===============================")
+            result = self.webapihelper.nude_upper_op(img, 100, 1, 2)
+            for image in result.images:
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def down_image(self, bot, message):
+        logging.info("Message contains one photo.")
+        date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+        path = f'download/photo_{date}.jpg'
+        logging.info(f"{path}")
+        file = await bot.getFile(message.photo[-1].file_id)
+        logging.info(file)
+        photo_path = await file.download_to_drive(custom_path=path)
+        logging.info(photo_path)
+        with open(photo_path, "rb") as f:
+            file_bytes = f.read()
+        img_ori = Image.open(BytesIO(file_bytes))
+        return img_ori
 
     async def send_disallowed_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -496,11 +511,13 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|lace|up'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('mi'), self.repair_breasts))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('hand'), self.repair_hand))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lace'), self.lace))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('up'), self.upper))
 
         #application.add_error_handler(self.error_handler)
 
