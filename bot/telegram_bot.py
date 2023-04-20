@@ -300,7 +300,7 @@ class SDBot:
                 await message.reply_photo(byteBufferOfImage(image, type_mode))
 
             logging.info(f"=============================underwear===============================")
-            image = self.webapihelper.clothes_op(img_ori, 'hot lace underware,', 60.0).image
+            image = self.webapihelper.clothes_op(img_ori, 'hot underwear,', 60.0).image
             # image = add_txt_to_img(image, WATERMARK)
             await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -368,6 +368,55 @@ class SDBot:
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
                 image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def ext(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            img_ori = await self.down_image(bot, message)
+
+            img = img_ori
+            logging.info(f"=============================ext===============================")
+            result = self.webapihelper.ext_op(img, 100.0, 1, 1)
+            # await message.reply_photo(byteBufferOfImage(result, 'PNG'))
+
+            for image in result.images:
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                image = self.webapihelper.clothes_op(image, 'hot underwear,', 60.0).image
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def rep(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        logging.info(message.caption)
+        strs = message.caption.split()
+        logging.info(strs)
+        if len(strs) < 3:
+            await message.reply_text(r'please input more than 2 words')
+            return
+
+        area = strs[1]
+        replacement = " ".join(strs[2:])
+        logging.info(replacement)
+
+        bot = context.bot
+        if message.photo:
+            img_ori = await self.down_image(bot, message)
+
+            img = img_ori
+            logging.info(f"=============================ext===============================")
+            result = self.webapihelper.rep_op(photo=img, area=area, replace=replacement, precision=100.0, batch_size=4, denoising_strength=1)
+            for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def down_image(self, bot, message):
@@ -511,13 +560,15 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|lace|up'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|lace|up|ext|rep'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('mi'), self.repair_breasts))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('hand'), self.repair_hand))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lace'), self.lace))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('up'), self.upper))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ext'), self.ext))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('rep'), self.rep))
 
         #application.add_error_handler(self.error_handler)
 
