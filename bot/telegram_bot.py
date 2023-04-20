@@ -293,7 +293,7 @@ class SDBot:
 
             img = result.image
             logging.info(f"=============================nude breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1)
+            result = self.webapihelper.breast_repair_op(img, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1, breast="")
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
