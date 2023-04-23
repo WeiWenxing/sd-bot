@@ -181,7 +181,7 @@ class SDBot:
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        self.webapihelper.cache_image = await self.getImgFromMsg(context.bot, update.message)
+        self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
         await update.message.reply_text("change clothes: ", reply_markup=reply_markup)
 
     async def draw_dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -218,7 +218,7 @@ class SDBot:
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        self.webapihelper.cache_image = await self.getImgFromMsg(context.bot, update.message)
+        self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
         await update.message.reply_text("change background: ", reply_markup=reply_markup)
 
     async def draw_bg(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -241,7 +241,7 @@ class SDBot:
         else:
             logging.info("no photo!")
 
-    async def getImgFromMsg(self, bot, message):
+    async def get_img_from_msg(self, bot, message):
         logging.info("Message contains one photo.")
         date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
         path = f'download/clothes_{date}.jpg'
@@ -264,12 +264,10 @@ class SDBot:
         bot = context.bot
         if message.photo:
             img_ori = await self.down_image(bot, message)
-
             # img = add_txt_to_img(img_ori, WATERMARK)
             # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
             # return
 
-            img = img_ori
             # logging.info(f"=============================nude upper===============================")
             # img = self.webapihelper.nude_upper_op(img).image
             # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
@@ -450,7 +448,62 @@ class SDBot:
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
+    async def high(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            # path = await self.down_image_to_path(bot, message)
+            # img = self.open_image_from_path(path)
+            img = await self.down_image(bot, message)
+            logging.info(f"=============================high resolution===============================")
+
+            # result = self.webapihelper.high_op(img, upscaling_resize=1)
+            # await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+            # logging.info(result.image.size)
+            # output_path = path.replace(".jpg", "_high")
+            # high_pic = saveImage(result.image, output_path, quality=90)
+            # logging.info(high_pic)
+            # await message.reply_document(high_pic)
+
     async def down_image(self, bot, message):
+        # logging.info("Message contains one photo.")
+        # date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+        # path = f'download/photo_{date}.jpg'
+        # logging.info(f"{path}")
+        # file = await bot.getFile(message.photo[-1].file_id)
+        # logging.info(file)
+        # photo_path = await file.download_to_drive(custom_path=path)
+        # logging.info(photo_path)
+        # with open(photo_path, "rb") as f:
+        #     file_bytes = f.read()
+        # img_ori = Image.open(BytesIO(file_bytes))
+        # path = await self.down_image_to_path(bot, message)
+        # image = self.open_image_from_path(path)
+
+        logging.info("Message contains one photo.")
+        file = await bot.getFile(message.photo[-1].file_id)
+        logging.info(file)
+        bytes = await file.download_as_bytearray()
+        image = Image.open(BytesIO(bytes))
+
+        image = await self.upscale_to_x2(bot, message, image)
+
+        return image
+
+    async def upscale_to_x2(self, bot, message, image):
+        result = self.webapihelper.high_op(image, upscaling_resize=1)
+        face_message = await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+        file = await bot.getFile(face_message.photo[-1].file_id)
+        logging.info(file)
+        bytes = await file.download_as_bytearray()
+        image = Image.open(BytesIO(bytes))
+        return image
+
+    async def down_image_to_path(self, bot, message):
         logging.info("Message contains one photo.")
         date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
         path = f'download/photo_{date}.jpg'
@@ -458,6 +511,10 @@ class SDBot:
         file = await bot.getFile(message.photo[-1].file_id)
         logging.info(file)
         photo_path = await file.download_to_drive(custom_path=path)
+        logging.info(photo_path)
+        return str(photo_path)
+
+    def open_image_from_path(self, photo_path):
         logging.info(photo_path)
         with open(photo_path, "rb") as f:
             file_bytes = f.read()
@@ -591,7 +648,7 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|lace|up|lower|ext|rep'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|lace|up|lower|ext|rep|high'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('mi'), self.repair_breasts))
@@ -601,6 +658,7 @@ class SDBot:
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lower'), self.lower))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ext'), self.ext))
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('rep'), self.rep))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('high'), self.high))
 
         #application.add_error_handler(self.error_handler)
 
