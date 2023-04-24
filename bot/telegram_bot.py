@@ -458,11 +458,12 @@ class SDBot:
         if message.photo:
             # path = await self.down_image_to_path(bot, message)
             # img = self.open_image_from_path(path)
-            img = await self.down_image(bot, message)
+            img = await self.down_image(bot, message, enhance_face=False)
             logging.info(f"=============================high resolution===============================")
 
             result = self.webapihelper.high1_op(img, upscaling_resize=2)
             logging.info(result.image.size)
+            await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
 
             date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
             path = f'download/high_{date}'
@@ -470,14 +471,15 @@ class SDBot:
             logging.info(high_pic)
             await message.reply_document(high_pic)
 
-    async def down_image(self, bot, message):
+    async def down_image(self, bot, message, enhance_face=False):
         logging.info("Message contains one photo.")
         file = await bot.getFile(message.photo[-1].file_id)
         logging.info(file)
         bytes = await file.download_as_bytearray()
         image = Image.open(BytesIO(bytes))
 
-        image = await self.upscale_face(bot, message, image)
+        if enhance_face:
+            image = await self.upscale_face(bot, message, image)
 
         return image
 
