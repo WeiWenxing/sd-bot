@@ -461,7 +461,7 @@ class SDBot:
             img = await self.down_image(bot, message)
             logging.info(f"=============================high resolution===============================")
 
-            result = self.webapihelper.high_op(img, upscaling_resize=2)
+            result = self.webapihelper.high1_op(img, upscaling_resize=2)
             logging.info(result.image.size)
 
             date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')

@@ -29,6 +29,42 @@ class WebUIApiHelper:
         self.api = webuiapi.WebUIApi(host=config['host'], port=config['port'], use_https=config['use_https'], sampler='DPM++ SDE Karras', steps=15)
         self.prompt_negative = r'(worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, tattoo, body painting, age spot, (ugly:1.331), (duplicate:1.331), (morbid:1.21), (mutilated:1.21), (tranny:1.331), deformed eyes, deformed lips, mutated hands, (poorly drawn hands:1.331), blurry, (bad anatomy:1.21), (bad proportions:1.331), three arms, extra limbs, extra legs, extra arms, extra hands, (more than 2 nipples:1.331), (missing arms:1.331), (extra legs:1.331), (fused fingers:1.61051), (too many fingers:1.61051), (unclear eyes:1.331), bad hands, missing fingers, extra digit, (futa:1.1), bad body, pubic hair, glans, easynegative, three feet, four feet, (bra:1.3), (saggy breasts:1.3)'
         # self.prompt_negative = r'easynegative,verybadimagenegative_v1.3,paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, age spot, glans, extra fingers, fewer fingers, Big breasts,huge breasts.bad_hand,wierd_hand,malformed_hand,malformed_finger,paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, skin blemishes, age spot, glans,extra fingers,fewer fingers,long neck, oil paintings,((eye shadow)),bad_posture,wierd_posture,poorly Rendered face,poorly drawn face,poor facial details,poorly drawn ,hands,poorly,rendered hands,low resolution,Images cut out at the top, left, right, bottom.,,bad composition,mutated body parts,blurry image,disfigured,oversaturated,bad anatomy,deformed body features'
+        self.alwayson_scripts_tiled_vae = {
+            'Tiled VAE': {
+                "args": [True, True, True, True, False, 1024, 128],
+            },
+        }
+        self.alwayson_scripts = {
+            "Tiled Diffusion": {
+                "args": [
+                    True,
+                    "MultiDiffusion",
+                    True,
+                    10,
+                    1,
+                    1,
+                    64,
+                    True,
+                    True,
+                    512,
+                    512,
+                    96,
+                    96,
+                    48,
+                    1,
+                    "R-ESRGAN 4x+",
+                    1.5,
+                    False,
+                    False,
+                    False,
+                    False,
+                    None,
+                ],
+            },
+            'Tiled VAE': {
+                "args": [True, True, True, True, False, 1024, 128],
+            },
+        }
 
     def rep_op(self, photo, area, replace, precision, batch_size, denoising_strength):
         prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]{area}[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, extremely delicate facial, {replace},an extremely delicate and beautiful, extremely detailed,intricate,'
@@ -58,7 +94,7 @@ class WebUIApiHelper:
     def nude1_op(self, photo):
         prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask|arms|hands" neg_precision=100.0 neg_padding=0.0 neg_smoothing=20.0]dress|clothes|bra|underwear|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, arms in back, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
         logging.info(f'prompt_positive: {prompt_positive}')
-        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10)
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10, alwayson_scripts=self.alwayson_scripts_tiled_vae)
         return result
 
     def bg_op(self, photo, bg):
@@ -111,6 +147,10 @@ class WebUIApiHelper:
 
     def high_op(self, image, upscaling_resize):
         result = self.api.extra_single_image(image=image, upscaler_1=webuiapi.Upscaler.ESRGAN_4x, gfpgan_visibility=1, upscaling_resize=upscaling_resize)
+        return result
+
+    def high1_op(self, image, upscaling_resize):
+        result = self.api.extra_single_image(image=image, upscaler_1="R-ESRGAN 4x+", gfpgan_visibility=1, upscaling_resize=upscaling_resize)
         return result
 
     def ext_op(self, photo, precision, denoising_strength, batch_count):
