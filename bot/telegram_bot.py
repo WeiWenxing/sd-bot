@@ -461,13 +461,14 @@ class SDBot:
             img = await self.down_image(bot, message)
             logging.info(f"=============================high resolution===============================")
 
-            # result = self.webapihelper.high_op(img, upscaling_resize=1)
-            # await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
-            # logging.info(result.image.size)
-            # output_path = path.replace(".jpg", "_high")
-            # high_pic = saveImage(result.image, output_path, quality=90)
-            # logging.info(high_pic)
-            # await message.reply_document(high_pic)
+            result = self.webapihelper.high_op(img, upscaling_resize=2)
+            logging.info(result.image.size)
+
+            date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+            path = f'download/high_{date}'
+            high_pic = saveImage(result.image, path, quality=90)
+            logging.info(high_pic)
+            await message.reply_document(high_pic)
 
     async def down_image(self, bot, message):
         # logging.info("Message contains one photo.")
