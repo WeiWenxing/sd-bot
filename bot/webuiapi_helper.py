@@ -93,7 +93,7 @@ class WebUIApiHelper:
         return result
 
     def nude1_op(self, photo):
-        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask|arms|hands" neg_precision=100.0 neg_padding=0.0 neg_smoothing=20.0]dress|clothes|bra|underwear|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), medium breasts, smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, arms in back, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
+        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask|arms|hands" neg_precision=100.0 neg_padding=0.0 neg_smoothing=20.0]dress|clothes|bra|underwear|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), medium breasts, smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, arms in back, an extremely delicate and beautiful, extremely detailed,intricate,'
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10, alwayson_scripts=self.alwayson_scripts_tiled_vae)
         return result
@@ -159,8 +159,6 @@ class WebUIApiHelper:
         prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]dress|clothes|bra|underwear|pants[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
 
         photo = self.get_ext_image(photo)
-        # mask = self.get_mask(photo, precision)
-        # logging.info(mask)
         mask = self.get_empty_mask(photo)
         mask = self.get_ext_mask(mask)
         result = self.api.img2img(images=[photo], mask_image=mask, prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
@@ -184,8 +182,12 @@ class WebUIApiHelper:
         height, width = mask_array.shape[:2]
 
         # 计算需要涂白的区域
-        y_start = int(height * 0.6)
+        y_start = int(height * 0.6)-4
+        left_edge = int(width * 0.2)+4
+        right_edge = int(width * 0.8)-4
         mask_array[y_start:, :, :] = 255
+        mask_array[:y_start, :left_edge, :] = 255
+        mask_array[:y_start, right_edge:width, :] = 255
 
         # 将NumPy数组转换为PIL Image对象
         mask_white = Image.fromarray(mask_array)
@@ -209,18 +211,22 @@ class WebUIApiHelper:
 
         img_array = np.array(image)
         height, width, channels = img_array.shape
-        new_array = np.zeros((h, width, channels), dtype=np.uint8)
+        new_array = np.zeros((h, w, channels), dtype=np.uint8)
 
-        new_array[:height, :, :] = img_array
+        new_array[:height, (w-width)//2:(w-width)//2+width, :] = img_array
 
         # 获取原始图像下边缘的颜色
-        bottom_colors = img_array[height-1, :, :]
+        # bottom_colors = img_array[height-1, :, :]
         # 对新数组下边缘的像素进行填充
-        new_array[height:h, :, :] = np.tile(bottom_colors, (h - height, 1)).reshape((h - height, width, channels))
+        # new_array[height:h, :, :] = np.tile(bottom_colors, (h - height, 1)).reshape((h - height, width, channels))
 
-        # bottom_color = (229, 205, 197)  # 将 R, G, B 替换成你想要的颜色值
-        # bottom_colors = np.full((h - height, width, channels), bottom_color, dtype=np.uint8)
-        # new_array[height:h, :, :] = bottom_colors
+        color = (128, 128, 128)  # (229, 205, 197)  # 将 R, G, B 替换成你想要的颜色值
+        bottom_colors = np.full((h - height, w, channels), color, dtype=np.uint8)
+        new_array[height:h, :, :] = bottom_colors
+        left_colors = np.full((height, (w-width)//2, channels), color, dtype=np.uint8)
+        new_array[:height, :(w-width)//2, :] = left_colors
+        right_colors = np.full((height, w - (w+width)//2, channels), color, dtype=np.uint8)
+        new_array[:height, (w+width)//2:w, :] = right_colors
 
         # 将 numpy 数组转换为 PIL Image 对象
         new_image = Image.fromarray(new_array)
