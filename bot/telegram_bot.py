@@ -12,6 +12,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
     filters, InlineQueryHandler, Application, CallbackContext, CallbackQueryHandler
 
 from webuiapi_helper import WebUIApiHelper, byteBufferOfImage, saveImage
+from config import telegram_config
 
 WATERMARK = r'fake pic by @aipicfree'
 
@@ -67,13 +68,13 @@ class SDBot:
     Class representing a ChatGPT Telegram Bot.
     """
 
-    def __init__(self, config: dict, api: WebUIApiHelper):
+    def __init__(self, api: WebUIApiHelper):
         """
         Initializes the bot with the given configuration and GPT bot object.
         :param config: A dictionary containing the bot configuration
         :param api: WebUIApiHelper object
         """
-        self.config = config
+        self.config = telegram_config
         self.webapihelper = api
         self.commands = [
             BotCommand(command='help', description='Show help message'),
@@ -107,8 +108,16 @@ class SDBot:
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        await update.message.reply_text("draw")
 
+        message = update.message
+        image_query = message_text(message)
+        if image_query == '':
+            await message.reply_text('Please provide a prompt! (e.g. /draw cat)')
+            return
+
+        logging.info(f'New image generation request received from user {update.message.from_user.name}')
+        result = self.webapihelper.txt2img_op(image_query)
+        await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
 
     async def show_model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -117,7 +126,7 @@ class SDBot:
             return
         keyboard = [
             [
-                InlineKeyboardButton("GF2", callback_data="GuoFeng2"),
+                InlineKeyboardButton("majic", callback_data="majicmixRealistic_v4.inpainting"),
                 InlineKeyboardButton("GF3.2", callback_data="GuoFeng3.2"),
                 InlineKeyboardButton("chill", callback_data="chilloutmix_NiPrunedFp32Fix"),
                 InlineKeyboardButton("GF3.2Inp", callback_data="GuoFeng3.2Inpainting.inpainting"),
@@ -614,7 +623,7 @@ class SDBot:
         await application.bot.set_my_commands(self.group_commands, scope=BotCommandScopeAllGroupChats())
         await application.bot.set_my_commands(self.commands)
 
-    def run(self):
+    async def run(self):
         """
         Runs the bot indefinitely until the user presses Ctrl+C
         """
@@ -631,7 +640,7 @@ class SDBot:
         application.add_handler(CommandHandler('model', self.show_model))
         application.add_handler(CommandHandler('start', self.help))
 
-        application.add_handler(CallbackQueryHandler(callback=self.set_model, pattern='GuoFeng|chill|uber'))
+        application.add_handler(CallbackQueryHandler(callback=self.set_model, pattern='GuoFeng|chill|uber|majic'))
         # application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
         application.add_handler(CallbackQueryHandler(callback=self.draw_dress, pattern='.*dress|.*suit|.*wear|.*uniform|armor|hot|bikini|see|.*hanfu'))
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
@@ -651,4 +660,14 @@ class SDBot:
 
         #application.add_error_handler(self.error_handler)
 
-        application.run_polling()
+        # application.run_polling()
+        await application.initialize()
+        await application.start()
+        logging.info("启动完毕，接收消息中……")
+        await application.updater.start_polling(drop_pending_updates=True)
+
+    async def start_task(self):
+        """|coro|
+        以异步方式启动
+        """
+        return await self.run()

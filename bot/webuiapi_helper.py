@@ -27,8 +27,9 @@ class WebUIApiHelper:
         self.config = config
         self.cache_image = None
         self.api = webuiapi.WebUIApi(host=config['host'], port=config['port'], use_https=config['use_https'], sampler='DPM++ SDE Karras', steps=15)
-        self.prompt_negative = r'(worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, tattoo, body painting, age spot, (ugly:1.331), (duplicate:1.331), (morbid:1.21), (mutilated:1.21), (tranny:1.331), deformed eyes, deformed lips, mutated hands, (poorly drawn hands:1.331), blurry, (bad anatomy:1.21), (bad proportions:1.331), three arms, extra limbs, extra legs, extra arms, extra hands, (more than 2 nipples:1.331), (missing arms:1.331), (extra legs:1.331), (fused fingers:1.61051), (too many fingers:1.61051), (unclear eyes:1.331), bad hands, missing fingers, extra digit, (futa:1.1), bad body, pubic hair, glans, easynegative, three feet, four feet, (bra:1.3), (saggy breasts:1.3)'
+        self.prompt_negative = r'(worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), easynegative, badhandsv5, skin spots, acnes, skin blemishes, tattoo, body painting, age spot, (ugly:1.331), (duplicate:1.331), (morbid:1.21), (mutilated:1.21), (tranny:1.331), deformed eyes, deformed lips, mutated hands, (poorly drawn hands:1.331), blurry, (bad anatomy:1.21), (bad proportions:1.331), three arms, extra limbs, extra legs, extra arms, extra hands, (more than 2 nipples:1.331), (missing arms:1.331), (extra legs:1.331), (fused fingers:1.61051), (too many fingers:1.61051), (unclear eyes:1.331), bad hands, missing fingers, extra digit, (futa:1.1), bad body, pubic hair, glans, easynegative, three feet, four feet, (bra:1.3), (saggy breasts:1.3)'
         # self.prompt_negative = r'easynegative,verybadimagenegative_v1.3,paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, age spot, glans, extra fingers, fewer fingers, Big breasts,huge breasts.bad_hand,wierd_hand,malformed_hand,malformed_finger,paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, skin blemishes, age spot, glans,extra fingers,fewer fingers,long neck, oil paintings,((eye shadow)),bad_posture,wierd_posture,poorly Rendered face,poorly drawn face,poor facial details,poorly drawn ,hands,poorly,rendered hands,low resolution,Images cut out at the top, left, right, bottom.,,bad composition,mutated body parts,blurry image,disfigured,oversaturated,bad anatomy,deformed body features'
+        # args see:  https://github.com/pkuliyi2015/multidiffusion-upscaler-for-automatic1111/blob/main/scripts/tilediffusion.py
         self.alwayson_scripts_tiled_vae = {
             'Tiled VAE': {
                 "args": [True, True, True, True, False, 1024, 128],
@@ -92,13 +93,13 @@ class WebUIApiHelper:
         return result
 
     def nude1_op(self, photo):
-        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask|arms|hands" neg_precision=100.0 neg_padding=0.0 neg_smoothing=20.0]dress|clothes|bra|underwear|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, arms in back, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
+        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask|arms|hands" neg_precision=100.0 neg_padding=0.0 neg_smoothing=20.0]dress|clothes|bra|underwear|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), medium breasts, smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, arms in back, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10, alwayson_scripts=self.alwayson_scripts_tiled_vae)
         return result
 
     def bg_op(self, photo, bg):
-        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=10.0 smoothing=20.0 negative_mask="face|body|dress|arms|legs|hair" neg_precision=100.0 neg_padding=-4.0 neg_smoothing=20.0]background|scene[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, ({bg}:1.4), very short hair, an extremely delicate and beautiful, extremely detailed,intricate,'
+        prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=10.0 smoothing=20.0 negative_mask="face|body|dress|arms|legs|hair" neg_precision=100.0 neg_padding=2.0 neg_smoothing=10.0]background|scene[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, ({bg}:1.4), very short hair, an extremely delicate and beautiful, extremely detailed,intricate,'
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10)
         return result
@@ -224,4 +225,14 @@ class WebUIApiHelper:
         # 将 numpy 数组转换为 PIL Image 对象
         new_image = Image.fromarray(new_array)
         return new_image
+
+    def txt2img_op(self, prompt):
+        prompt_neg= r'(worst quality, low quality:1.4), (fuze:1.4), (worst quality:1.1), (low quality:1.4:1.1), lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurrypolar,bad body,bad proportions,gross proportions,text,error,missing fingers, missing arms,missing legs, extra digit, extra fingers,fewer digits,extra limbs,extra arms,extra legs,malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands, cropped,poorly drawn hands,poorly drawn face,mutation,deformed,worst quality,low quality, normal quality, blurry,ugly,duplicate,morbid,mutilated,out of frame, body out of frame,'
+        result = self.api.txt2img(prompt=prompt, negative_prompt=prompt_neg, width=512, height=768, batch_size=2, denoising_strength=0.45, enable_hr=True, hr_second_pass_steps=10, hr_scale=1.5, restore_faces=True, steps=10, seed=-1, sampler_name='DPM++ 2M Karras', )
+        return result
+
+    def out_op(self, prompt):
+        prompt_neg= r'(worst quality, low quality:1.4), (fuze:1.4), (worst quality:1.1), (low quality:1.4:1.1), lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurrypolar,bad body,bad proportions,gross proportions,text,error,missing fingers, missing arms,missing legs, extra digit, extra fingers,fewer digits,extra limbs,extra arms,extra legs,malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands, cropped,poorly drawn hands,poorly drawn face,mutation,deformed,worst quality,low quality, normal quality, blurry,ugly,duplicate,morbid,mutilated,out of frame, body out of frame,'
+        result = self.api.txt2img(prompt=prompt, negative_prompt=prompt_neg, width=512, height=768, batch_size=2, denoising_strength=0.45, enable_hr=True, hr_second_pass_steps=10, hr_scale=1.5, restore_faces=True, steps=10, seed=-1, sampler_name='DPM++ 2M Karras', )
+        return result
 
