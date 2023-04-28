@@ -3,7 +3,7 @@ import webuiapi
 from PIL import Image, PngImagePlugin
 from io import BytesIO
 import numpy as np
-import mask_clipseg
+#import mask_clipseg
 
 def byteBufferOfImage(img, mode):
     img_buffer = BytesIO()
@@ -162,8 +162,8 @@ class WebUIApiHelper:
         photo = self.get_ext_image(photo)
         mask = self.get_empty_mask(photo)
         # mask = self.clip_seg(photo, "dress|clothes|bra|underwear|pants", "face|mask", mask_precision=90, mask_padding=8)  # self.get_empty_mask(photo)
-        ext_mask = self.get_ext_mask(mask, padding=6)
-        mask = mask_clipseg.overlay_mask_part(mask, ext_mask, 1)
+        mask = self.get_ext_mask(mask, padding=6)
+        # mask = mask_clipseg.overlay_mask_part(mask, ext_mask, 1)
         result = self.api.img2img(images=[photo], mask_image=mask, prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=0, steps=10)
         return result
 
@@ -180,7 +180,7 @@ class WebUIApiHelper:
     def clip_seg(self, photo, mask_prompt, negative_mask_prompt, mask_precision=100, mask_padding=4):
         logging.info(f'mask_prompt: {mask_prompt}')
         logging.info(f'negative_mask_prompt: {negative_mask_prompt}')
-        return mask_clipseg.run(photo, mask_prompt, negative_mask_prompt, mask_precision=mask_precision, mask_padding=mask_padding)
+        return photo  # mask_clipseg.run(photo, mask_prompt, negative_mask_prompt, mask_precision=mask_precision, mask_padding=mask_padding)
 
     def get_ext_mask(self, mask, padding=4):
         # 将PIL Image对象转换为NumPy数组
