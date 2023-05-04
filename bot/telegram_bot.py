@@ -301,7 +301,7 @@ class SDBot:
 
             img = result.image
             logging.info(f"=============================repair breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1, breast="")
+            result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
@@ -321,7 +321,7 @@ class SDBot:
 
             img = result.image
             logging.info(f"=============================repair breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1, breast="")
+            result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
@@ -424,15 +424,19 @@ class SDBot:
             result = self.webapihelper.get_ext_image(img)
             await message.reply_photo(byteBufferOfImage(result, 'JPEG'))
 
-            result = self.webapihelper.ext_op(img, 100.0, 1, 1)
-            # await message.reply_photo(byteBufferOfImage(result, 'PNG'))
-
+            result = self.webapihelper.ext_ori_op(result, 1, 2)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-                image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-                image = self.webapihelper.clothes_op(image, 'hot underwear,', 60.0).image
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+            # result = self.webapihelper.ext_op(img, 100.0, 1, 1)
+            # await message.reply_photo(byteBufferOfImage(result, 'PNG'))
+
+            # for image in result.images:
+            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+            #     image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
+            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+            #     image = self.webapihelper.clothes_op(image, 'hot underwear,', 60.0).image
+            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def rep(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
