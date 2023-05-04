@@ -421,6 +421,9 @@ class SDBot:
 
             img = img_ori
             logging.info(f"=============================ext===============================")
+            result = self.webapihelper.get_ext_image(img)
+            await message.reply_photo(byteBufferOfImage(result, 'JPEG'))
+
             result = self.webapihelper.ext_op(img, 100.0, 1, 1)
             # await message.reply_photo(byteBufferOfImage(result, 'PNG'))
 
@@ -469,6 +472,19 @@ class SDBot:
             img = await self.down_image(bot, message, enhance_face=False)
             result = self.webapihelper.clip_seg(img, "dress|skirt|underwear", "face|arms")
             await message.reply_photo(byteBufferOfImage(result, 'PNG'))
+
+    async def all(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            img = await self.down_image(bot, message, enhance_face=False)
+            result = self.webapihelper.nude_repair_op(img, 65, 0.8)
+            for image in result.images:
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def high(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -661,7 +677,7 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|lace|up|lower|ext|rep|high|clip'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|lace|up|lower|ext|rep|high|clip|all'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('mi'), self.repair_breasts))
@@ -673,6 +689,7 @@ class SDBot:
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('rep'), self.rep))
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('high'), self.high))
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('clip'), self.clip))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('all'), self.all))
 
         #application.add_error_handler(self.error_handler)
 
