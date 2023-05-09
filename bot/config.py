@@ -23,7 +23,7 @@ telegram_config = {
 }
 
 discord_config = {
-    'discord_token': os.environ['DISCORD_TOKEN'],
+    'token': os.environ.get('DISCORD_TOKEN', ''),
 }
 
 sdwebuiapi_config = {

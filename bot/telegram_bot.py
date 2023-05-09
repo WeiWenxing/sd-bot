@@ -184,7 +184,7 @@ class SDBot:
             ],
             [
                 InlineKeyboardButton("运动服", callback_data="sportswear"),
-                InlineKeyboardButton("铠甲", callback_data="armor,"),
+                InlineKeyboardButton("情趣", callback_data="crotchless,"),
                 InlineKeyboardButton("内衣", callback_data="hot underware,"),
                 InlineKeyboardButton("制服", callback_data="police_uniform,"),
                 InlineKeyboardButton("学院", callback_data="school_uniform,"),
@@ -207,7 +207,7 @@ class SDBot:
         await query.answer()
 
         if self.webapihelper.cache_image is not None:
-            result = self.webapihelper.clothes_op(self.webapihelper.cache_image, clothes, 60.0)
+            result = self.webapihelper.clothes_op(self.webapihelper.cache_image, clothes)
             for img in result.images:
                 await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
         else:
@@ -299,16 +299,16 @@ class SDBot:
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
                 await message.reply_photo(byteBufferOfImage(image, type_mode))
 
-            img = result.image
-            logging.info(f"=============================repair breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
-            for image in result.images:
-                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
-                await message.reply_photo(byteBufferOfImage(image, type_mode))
+            # img = result.image
+            # logging.info(f"=============================repair breasts===============================")
+            # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
+            # for image in result.images:
+            #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+            #     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+            #     await message.reply_photo(byteBufferOfImage(image, type_mode))
 
             logging.info(f"=============================underwear===============================")
-            image = self.webapihelper.clothes_op(img_ori, 'hot underwear,', 60.0).image
+            image = self.webapihelper.clothes_op(img_ori, 'hot underwear,').image
             # image = add_txt_to_img(image, WATERMARK)
             await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -319,9 +319,16 @@ class SDBot:
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
                 await message.reply_photo(byteBufferOfImage(image, type_mode))
 
-            img = result.image
-            logging.info(f"=============================repair breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
+            # img = result.image
+            # logging.info(f"=============================repair breasts===============================")
+            # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
+            # for image in result.images:
+            #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+            #     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+            #     await message.reply_photo(byteBufferOfImage(image, type_mode))
+
+            logging.info(f"=============================all full===============================")
+            result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
             for image in result.images:
                 type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                 # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
@@ -339,7 +346,10 @@ class SDBot:
 
             img = img_ori
             logging.info(f"=============================repair breasts===============================")
-            result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
+            # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=2)
+            # for image in result.images:
+            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+            result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=4)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -372,6 +382,22 @@ class SDBot:
             img = img_ori
             logging.info(f"=============================lace===============================")
             result = self.webapihelper.lace_op(img, 100, 1, 4)
+            for image in result.images:
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def crotch(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        message = update.message
+        bot = context.bot
+        if message.photo:
+            img_ori = await self.down_image(bot, message)
+
+            logging.info(f"=============================crotchless===============================")
+            result = self.webapihelper.clothes_op(img_ori, 'crotchless,', batch_size=4)
+
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -460,7 +486,7 @@ class SDBot:
             img_ori = await self.down_image(bot, message)
 
             img = img_ori
-            logging.info(f"=============================ext===============================")
+            logging.info(f"=============================rep===============================")
             result = self.webapihelper.rep_op(photo=img, area=area, replace=replacement, precision=100.0, batch_size=4, denoising_strength=1)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
@@ -486,7 +512,7 @@ class SDBot:
         bot = context.bot
         if message.photo:
             img = await self.down_image(bot, message, enhance_face=False)
-            result = self.webapihelper.nude_repair_op(img, 65, 0.8)
+            result = self.webapihelper.nude_repair_op(img, precision=65, denoising_strength=0.8, batch_size=4)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -677,21 +703,22 @@ class SDBot:
 
         application.add_handler(CallbackQueryHandler(callback=self.set_model, pattern='GuoFeng|chill|uber|majic'))
         # application.add_handler(CallbackQueryHandler(callback=self.checkpoints))
-        application.add_handler(CallbackQueryHandler(callback=self.draw_dress, pattern='.*dress|.*suit|.*wear|.*uniform|armor|hot|bikini|see|.*hanfu'))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_dress, pattern='.*dress|.*suit|.*wear|.*uniform|crotchless|armor|hot|bikini|see|.*hanfu'))
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|lace|up|lower|ext|rep|high|clip|all'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|ll|cc|up|lower|ext|rep|hi|clip|all'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('mi'), self.repair_breasts))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('hand'), self.repair_hand))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lace'), self.lace))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ll'), self.lace))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('cc'), self.crotch))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('up'), self.upper))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lower'), self.lower))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ext'), self.ext))
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('rep'), self.rep))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('high'), self.high))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('hi'), self.high))
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('clip'), self.clip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('all'), self.all))
 
