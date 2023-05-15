@@ -79,23 +79,24 @@ class SDBot:
         self.webapihelper = api
         self.commands = [
             BotCommand(command='help', description='Show help message'),
-            BotCommand(command='draw', description='draw a picture'),
-            BotCommand(command='model', description='change models'),
-            BotCommand(command='dress', description='change clothes'),
         ]
         self.group_commands = [
             BotCommand(command='chat', description='Chat with the bot!')
         ] + self.commands
-        self.disallowed_message = "Sorry, you are not allowed to use this bot. You can connect to @aipicfree"
+        self.disallowed_message = "Sorry, you are not allowed to use this bot. You can connect to @aisexypic"
         self.budget_limit_message = "Sorry, you have reached your monthly usage limit."
         self.usage = {}
         self.last_message = {}
+        self.photo_commands = [
+            BotCommand(command='dress', description='send me a photo with caption "dress", you can change clothes'),
+        ]
 
     async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """
         Shows the help menu.
         """
         commands = self.group_commands if self.is_group_chat(update) else self.commands
+        commands.extend(self.photo_commands)
         commands_description = [f'/{command.command} - {command.description}' for command in commands]
         help_text = 'I\'m a SD bot, talk to me!' + \
                     '\n\n' + \
@@ -416,8 +417,8 @@ class SDBot:
             result = self.webapihelper.nude_upper_op(img, 100, 1, 2)
             for image in result.images:
                 await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-                image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                # image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
+                # await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def lower(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -633,6 +634,7 @@ class SDBot:
         allowed_user_ids = self.config['allowed_user_ids'].split(',')
         # Check if user is allowed
         if str(update.message.from_user.id) in allowed_user_ids:
+            logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id}  is allowed!!')
             return True
 
         # Check if it's a group a chat with at least one authorized member
@@ -707,20 +709,45 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.CaptionRegex('dress|bg|mi|hand|ll|cc|up|lower|ext|rep|hi|clip|all'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|ll|cc|up|lower|ext|rep|hi|clip|all'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
+        self.photo_commands.append(BotCommand('bg', 'send me a photo with caption "bg" to change background.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('mi'), self.repair_breasts))
+        self.photo_commands.append(BotCommand('mi', 'send me a photo with caption "mi" to repair breasts and nipples.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('hand'), self.repair_hand))
+        self.photo_commands.append(BotCommand('hand', 'send me a photo with caption "bg" to repair hands.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ll'), self.lace))
+        self.photo_commands.append(BotCommand('ll', 'send me a photo with caption "ll" to change clothes to lace bra.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('cc'), self.crotch))
+        self.photo_commands.append(BotCommand('cc', 'send me a photo with caption "cc" to change clothes to hot underwear.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('up'), self.upper))
+        self.photo_commands.append(BotCommand('up', 'send me a photo with caption "up" to nude upper body.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lower'), self.lower))
+        self.photo_commands.append(BotCommand('lower', 'send me a photo with caption "lower" to nude lower body.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ext'), self.ext))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('rep'), self.rep))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('hi'), self.high))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('clip'), self.clip))
-        application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('all'), self.all))
+        self.photo_commands.append(BotCommand('ext', 'send me a photo with caption ext" to out painting picture.'))
+
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('rep'), self.rep))
+        self.photo_commands.append(BotCommand('rep', 'send me a photo with caption "rep <place> <what>" to replace area to something.'))
+
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('hi'), self.high))
+        self.photo_commands.append(BotCommand('hi', 'send me a photo with caption "hi" to high resolution for picture.'))
+
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('clip'), self.clip))
+        # self.photo_commands.append(BotCommand('clip', 'send me a photo with caption "clip" to change clothes to lace bra.'))
+
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('all'), self.all))
+        self.photo_commands.append(BotCommand('all', 'send me a photo with caption "all" to nude 1girl all except face.'))
+
+        # application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('all'), self.all))
 
         #application.add_error_handler(self.error_handler)
 
