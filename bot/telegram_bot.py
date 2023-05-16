@@ -114,15 +114,24 @@ class SDBot:
             await self.send_disallowed_message(update, context)
             return
 
-        message = update.message
-        image_query = message_text(message)
-        if image_query == '':
-            await message.reply_text('Please provide a prompt! (e.g. /draw cat)')
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
             return
 
-        logging.info(f'New image generation request received from user {update.message.from_user.name}')
-        result = self.webapihelper.txt2img_op(image_query)
-        await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            image_query = message_text(message)
+            if image_query == '':
+                await message.reply_text('Please provide a prompt! (e.g. /draw cat)')
+                return
+
+            logging.info(f'New image generation request received from user {update.message.from_user.name}')
+            result = self.webapihelper.txt2img_op(image_query)
+            await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
 
     async def show_model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -133,7 +142,7 @@ class SDBot:
             [
                 InlineKeyboardButton("majic", callback_data="majicmixRealistic_v4.inpainting"),
                 InlineKeyboardButton("GF3.2", callback_data="GuoFeng3.2"),
-                InlineKeyboardButton("chill", callback_data="chilloutmix_NiPrunedFp32Fix"),
+                InlineKeyboardButton("mix", callback_data="majicmixRealistic_v4"),
                 InlineKeyboardButton("GF3.2Inp", callback_data="GuoFeng3.2Inpainting.inpainting"),
                 InlineKeyboardButton("ubInp", callback_data="uberRealisticPornMerge_urpmv13Inpainting"),
             ],
@@ -286,7 +295,7 @@ class SDBot:
             await K.delete()
             message = update.message
             bot = context.bot
-            if message.photo:
+            if message.photo and len(message.photo) == 1:
                 img_ori = await self.down_image(bot, message)
                 # img = add_txt_to_img(img_ori, WATERMARK)
                 # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
@@ -347,6 +356,8 @@ class SDBot:
                     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
                     await message.reply_photo(byteBufferOfImage(image, type_mode))
+            else:
+                await message.reply_text(f'please send one photo!')
 
     async def repair_breasts(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -611,6 +622,29 @@ class SDBot:
                 for image in result.images:
                     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
+    async def png_info(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            logging.info(message)
+            if message.document:
+                img = await self.down_image(bot, message, enhance_face=False, is_doc=True)
+                result = self.webapihelper.info_op(img)
+                logging.info(result)
+                await message.reply_text(f'{result.info}\n{result.parameters}')
+
     async def high(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
@@ -645,9 +679,12 @@ class SDBot:
                 logging.info(high_pic)
                 await message.reply_document(high_pic)
 
-    async def down_image(self, bot, message, enhance_face=False):
+    async def down_image(self, bot, message, enhance_face=False, is_doc=False):
         logging.info("Message contains one photo.")
-        file = await bot.getFile(message.photo[-1].file_id)
+        if not is_doc:
+            file = await bot.getFile(message.photo[-1].file_id)
+        else:
+            file = await bot.getFile(message.document.file_id)
         logging.info(file)
         bytes = await file.download_as_bytearray()
         image = Image.open(BytesIO(bytes))
@@ -854,6 +891,8 @@ class SDBot:
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('all'), self.all))
         self.photo_commands.append(BotCommand('all', 'send me a photo with caption "all" to nude 1girl all except face.'))
+
+        application.add_handler(MessageHandler(filters.Document.IMAGE, self.png_info))
 
         # application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('all'), self.all))
 

@@ -28,7 +28,7 @@ class WebUIApiHelper:
         self.config = config
         self.cache_image = None
         self.api = webuiapi.WebUIApi(host=config['host'], port=config['port'], use_https=config['use_https'], sampler='DPM++ SDE Karras', steps=15)
-        self.prompt_negative = r'(worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), easynegative, badhandsv5, skin spots, acnes, skin blemishes, tattoo, body painting, age spot, (ugly:1.331), (duplicate:1.331), (morbid:1.21), (mutilated:1.21), (tranny:1.331), deformed eyes, deformed lips, mutated hands, (poorly drawn hands:1.331), blurry, (bad anatomy:1.21), (bad proportions:1.331), three arms, extra limbs, extra legs, extra arms, extra hands, (more than 2 nipples:1.331), (missing arms:1.331), (extra legs:1.331), (fused fingers:1.61051), (too many fingers:1.61051), (unclear eyes:1.331), bad hands, missing fingers, extra digit, (futa:1.1), bad body, pubic hair, glans, easynegative, three feet, four feet, (bra:1.3), (saggy breasts:1.3)'
+        self.prompt_negative = r'ng_deepnegative_v1_75t, (worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), easynegative, badhandsv5, skin spots, acnes, skin blemishes, tattoo, body painting, age spot, (ugly:1.331), (duplicate:1.331), (morbid:1.21), (mutilated:1.21), (tranny:1.331), deformed eyes, deformed lips, mutated hands, (poorly drawn hands:1.331), blurry, (bad anatomy:1.21), (bad proportions:1.331), three arms, extra limbs, extra legs, extra arms, extra hands, (more than 2 nipples:1.331), (missing arms:1.331), (extra legs:1.331), (fused fingers:1.61051), (too many fingers:1.61051), (unclear eyes:1.331), bad hands, missing fingers, extra digit, (futa:1.1), bad body, pubic hair, glans, easynegative, three feet, four feet, (bra:1.3), (saggy breasts:1.3)'
         # self.prompt_negative = r'easynegative,verybadimagenegative_v1.3,paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, age spot, glans, extra fingers, fewer fingers, Big breasts,huge breasts.bad_hand,wierd_hand,malformed_hand,malformed_finger,paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, skin blemishes, age spot, glans,extra fingers,fewer fingers,long neck, oil paintings,((eye shadow)),bad_posture,wierd_posture,poorly Rendered face,poorly drawn face,poor facial details,poorly drawn ,hands,poorly,rendered hands,low resolution,Images cut out at the top, left, right, bottom.,,bad composition,mutated body parts,blurry image,disfigured,oversaturated,bad anatomy,deformed body features'
         # args see:  https://github.com/pkuliyi2015/multidiffusion-upscaler-for-automatic1111/blob/main/scripts/tilediffusion.py
         self.alwayson_scripts_tiled_vae = {
@@ -106,7 +106,7 @@ class WebUIApiHelper:
         return result
 
     def nude_upper_op(self, photo, precision, denoising_strength, batch_count):
-        prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face|legs|arms" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]dress|bra|underwear|clothes|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin,  clavicle, large breasts, cleavage, slim waist, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>'
+        prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face|legs|arms" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]dress|bra|underwear|clothes|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin,  clavicle, large breasts, cleavage, slim waist, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
 
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
@@ -153,6 +153,10 @@ class WebUIApiHelper:
 
     def high1_op(self, image, upscaling_resize):
         result = self.api.extra_single_image(image=image, upscaler_1="R-ESRGAN 4x+", gfpgan_visibility=1, upscaling_resize=upscaling_resize)
+        return result
+
+    def info_op(self, image):
+        result = self.api.png_info(image=image)
         return result
 
     def ext_ori_op(self, ext_photo, denoising_strength=1.0, batch_count=1):
