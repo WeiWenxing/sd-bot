@@ -14,6 +14,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 
 from webuiapi_helper import WebUIApiHelper, byteBufferOfImage, saveImage
 from config import telegram_config
+from queueinfo import QueueInfo
 
 WATERMARK = r'fake pic by @aipicfree'
 
@@ -90,6 +91,8 @@ class SDBot:
         self.photo_commands = [
             BotCommand(command='dress', description='send me a photo with caption "dress", you can change clothes'),
         ]
+        self.queue_max = 5
+        self.queue = QueueInfo()
 
     async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """
@@ -271,276 +274,376 @@ class SDBot:
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
-            # img = add_txt_to_img(img_ori, WATERMARK)
-            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
-            # return
 
-            # logging.info(f"=============================nude upper===============================")
-            # img = self.webapihelper.nude_upper_op(img).image
-            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            # logging.info(f"=============================nude lower===============================")
-            # result = self.webapihelper.nude_lower_op(img)
-            # for image in result.images:
-            #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-            #     await message.reply_photo(byteBufferOfImage(image, type_mode))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+                # img = add_txt_to_img(img_ori, WATERMARK)
+                # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+                # return
 
-            # logging.info(f"=============================nude repair===============================")
-            # img = self.webapihelper.nude_repair_op(img, 70.0, 0.45).image
-            # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
+                # logging.info(f"=============================nude upper===============================")
+                # img = self.webapihelper.nude_upper_op(img).image
+                # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
-            logging.info(f"=============================nude1 full===============================")
-            result = self.webapihelper.nude1_op(img_ori)
-            for image in result.images:
-                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
-                await message.reply_photo(byteBufferOfImage(image, type_mode))
+                # logging.info(f"=============================nude lower===============================")
+                # result = self.webapihelper.nude_lower_op(img)
+                # for image in result.images:
+                #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                #     await message.reply_photo(byteBufferOfImage(image, type_mode))
 
-            # img = result.image
-            # logging.info(f"=============================repair breasts===============================")
-            # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
-            # for image in result.images:
-            #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-            #     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
-            #     await message.reply_photo(byteBufferOfImage(image, type_mode))
+                # logging.info(f"=============================nude repair===============================")
+                # img = self.webapihelper.nude_repair_op(img, 70.0, 0.45).image
+                # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
 
-            logging.info(f"=============================underwear===============================")
-            image = self.webapihelper.clothes_op(img_ori, 'hot underwear,').image
-            # image = add_txt_to_img(image, WATERMARK)
-            await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                logging.info(f"=============================nude1 full===============================")
+                result = self.webapihelper.nude1_op(img_ori)
+                for image in result.images:
+                    type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                    # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+                    await message.reply_photo(byteBufferOfImage(image, type_mode))
 
-            logging.info(f"=============================nude full===============================")
-            result = self.webapihelper.nude_op(img_ori)
-            for image in result.images:
-                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
-                await message.reply_photo(byteBufferOfImage(image, type_mode))
+                # img = result.image
+                # logging.info(f"=============================repair breasts===============================")
+                # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
+                # for image in result.images:
+                #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                #     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+                #     await message.reply_photo(byteBufferOfImage(image, type_mode))
 
-            # img = result.image
-            # logging.info(f"=============================repair breasts===============================")
-            # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
-            # for image in result.images:
-            #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-            #     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
-            #     await message.reply_photo(byteBufferOfImage(image, type_mode))
+                logging.info(f"=============================underwear===============================")
+                image = self.webapihelper.clothes_op(img_ori, 'hot underwear,').image
+                # image = add_txt_to_img(image, WATERMARK)
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
-            logging.info(f"=============================all full===============================")
-            result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
-            for image in result.images:
-                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
-                await message.reply_photo(byteBufferOfImage(image, type_mode))
+                logging.info(f"=============================nude full===============================")
+                result = self.webapihelper.nude_op(img_ori)
+                for image in result.images:
+                    type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                    # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+                    await message.reply_photo(byteBufferOfImage(image, type_mode))
+
+                # img = result.image
+                # logging.info(f"=============================repair breasts===============================")
+                # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=1)
+                # for image in result.images:
+                #     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                #     # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+                #     await message.reply_photo(byteBufferOfImage(image, type_mode))
+
+                logging.info(f"=============================all full===============================")
+                result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
+                for image in result.images:
+                    type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                    # image = image if image.mode == "RGBA" else add_txt_to_img(image, WATERMARK)
+                    await message.reply_photo(byteBufferOfImage(image, type_mode))
 
     async def repair_breasts(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
 
-            img = img_ori
-            logging.info(f"=============================repair breasts===============================")
-            # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=2)
-            # for image in result.images:
-            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-            result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=4)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================repair breasts===============================")
+                # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=2)
+                # for image in result.images:
+                #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=4)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def repair_hand(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            img = img_ori
-            logging.info(f"=============================repair hand===============================")
-            result = self.webapihelper.hand_repair_op(img, 100, 0.7, 2)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================repair hand===============================")
+                result = self.webapihelper.hand_repair_op(img, 100, 0.7, 2)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def lace(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            img = img_ori
-            logging.info(f"=============================lace===============================")
-            result = self.webapihelper.lace_op(img, 100, 1, 4)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================lace===============================")
+                result = self.webapihelper.lace_op(img, 100, 1, 4)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def crotch(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            logging.info(f"=============================crotchless===============================")
-            result = self.webapihelper.clothes_op(img_ori, 'crotchless,', batch_size=4)
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
 
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                logging.info(f"=============================crotchless===============================")
+                result = self.webapihelper.clothes_op(img_ori, 'crotchless,', batch_size=4)
+
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def upper(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            img = img_ori
-            logging.info(f"=============================upper nude===============================")
-            result = self.webapihelper.nude_upper_op(img, 100, 1, 2)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-                # image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
-                # await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================upper nude===============================")
+                result = self.webapihelper.nude_upper_op(img, 100, 1, 2)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                    # image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
+                    # await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def lower(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            img = img_ori
-            logging.info(f"=============================lower nude===============================")
-            result = self.webapihelper.nude_lower_op(img, 100, 1, 2)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================lower nude===============================")
+                result = self.webapihelper.nude_lower_op(img, 100, 1, 2)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def ext(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            img = img_ori
-            logging.info(f"=============================ext===============================")
-            result = self.webapihelper.get_ext_image(img)
-            await message.reply_photo(byteBufferOfImage(result, 'JPEG'))
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
 
-            result = self.webapihelper.ext_ori_op(result, 1, 2)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                img = img_ori
+                logging.info(f"=============================ext===============================")
+                result = self.webapihelper.get_ext_image(img)
+                await message.reply_photo(byteBufferOfImage(result, 'JPEG'))
 
-            # result = self.webapihelper.ext_op(img, 100.0, 1, 1)
-            # await message.reply_photo(byteBufferOfImage(result, 'PNG'))
-
-            # for image in result.images:
-            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-            #     image = self.webapihelper.breast_repair_op(image, precision=100, padding=-4.0, denoising_strength=0.7, batch_count=1).image
-            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-            #     image = self.webapihelper.clothes_op(image, 'hot underwear,', 60.0).image
-            #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                result = self.webapihelper.ext_ori_op(result, 1, 2)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def rep(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        logging.info(message.caption)
-        strs = message.caption.split()
-        logging.info(strs)
-        if len(strs) < 3:
-            await message.reply_text(r'please input more than 2 words')
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
             return
 
-        area = strs[1]
-        replacement = " ".join(strs[2:])
-        logging.info(replacement)
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            logging.info(message.caption)
+            strs = message.caption.split()
+            logging.info(strs)
+            if len(strs) < 3:
+                await message.reply_text(r'please input more than 2 words')
+                return
 
-        bot = context.bot
-        if message.photo:
-            img_ori = await self.down_image(bot, message)
+            area = strs[1]
+            replacement = " ".join(strs[2:])
+            logging.info(replacement)
 
-            img = img_ori
-            logging.info(f"=============================rep===============================")
-            result = self.webapihelper.rep_op(photo=img, area=area, replace=replacement, precision=100.0, batch_size=4, denoising_strength=1)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================rep===============================")
+                result = self.webapihelper.rep_op(photo=img, area=area, replace=replacement, precision=100.0, batch_size=4, denoising_strength=1)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def clip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img = await self.down_image(bot, message, enhance_face=False)
-            result = self.webapihelper.clip_seg(img, "dress|skirt|underwear", "face|arms")
-            await message.reply_photo(byteBufferOfImage(result, 'PNG'))
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img = await self.down_image(bot, message, enhance_face=False)
+                result = self.webapihelper.clip_seg(img, "dress|skirt|underwear", "face|arms")
+                await message.reply_photo(byteBufferOfImage(result, 'PNG'))
 
     async def all(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            img = await self.down_image(bot, message, enhance_face=False)
-            result = self.webapihelper.nude_repair_op(img, precision=65, denoising_strength=0.8, batch_size=4)
-            for image in result.images:
-                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img = await self.down_image(bot, message, enhance_face=False)
+                result = self.webapihelper.nude_repair_op(img, precision=65, denoising_strength=0.8, batch_size=4)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def high(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        message = update.message
-        bot = context.bot
-        if message.photo:
-            # path = await self.down_image_to_path(bot, message)
-            # img = self.open_image_from_path(path)
-            img = await self.down_image(bot, message, enhance_face=False)
-            logging.info(f"=============================high resolution===============================")
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
 
-            result = self.webapihelper.high1_op(img, upscaling_resize=2)
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                # path = await self.down_image_to_path(bot, message)
+                # img = self.open_image_from_path(path)
+                img = await self.down_image(bot, message, enhance_face=False)
+                logging.info(f"=============================high resolution===============================")
 
-            torch.cuda.empty_cache()
-            logging.info(result.image.size)
-            await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+                result = self.webapihelper.high1_op(img, upscaling_resize=2)
 
-            date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-            path = f'download/high_{date}'
-            high_pic = saveImage(result.image, path, quality=90)
-            logging.info(high_pic)
-            await message.reply_document(high_pic)
+                torch.cuda.empty_cache()
+                logging.info(result.image.size)
+                await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+
+                date = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+                path = f'download/high_{date}'
+                high_pic = saveImage(result.image, path, quality=90)
+                logging.info(high_pic)
+                await message.reply_document(high_pic)
 
     async def down_image(self, bot, message, enhance_face=False):
         logging.info("Message contains one photo.")
@@ -629,12 +732,13 @@ class SDBot:
             return True
         
         if self.is_admin(update):
+            logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id} is allowed!! user_lang: {update.message.from_user.language_code}')
             return True
         
         allowed_user_ids = self.config['allowed_user_ids'].split(',')
         # Check if user is allowed
         if str(update.message.from_user.id) in allowed_user_ids:
-            logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id}  is allowed!!')
+            logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id} is allowed!! user_lang: {update.message.from_user.language_code}')
             return True
 
         # Check if it's a group a chat with at least one authorized member
@@ -649,7 +753,11 @@ class SDBot:
             logging.info(f'Group chat messages from user {update.message.from_user.name} '
                 f'(id: {update.message.from_user.id}) are not allowed')
 
-        logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id}  is not allowed!!')
+        if str(update.message.from_user.language_code).startswith('zh'):
+            self.disallowed_message = "Sorry, you are not allowed to use this bot. You can connect to @aipicfree"
+        else:
+            self.disallowed_message = "Sorry, you are not allowed to use this bot. You can connect to @aisexypic"
+        logging.info(f'user_name: {update.message.from_user.name}, user_id: {update.message.from_user.id} is not allowed!! user_lang: {update.message.from_user.language_code}')
         return False
 
     def is_admin(self, update: Update) -> bool:
@@ -733,7 +841,7 @@ class SDBot:
         self.photo_commands.append(BotCommand('lower', 'send me a photo with caption "lower" to nude lower body.'))
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ext'), self.ext))
-        self.photo_commands.append(BotCommand('ext', 'send me a photo with caption ext" to out painting picture.'))
+        self.photo_commands.append(BotCommand('ext', 'send me a photo with caption "ext" to out painting picture.'))
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('rep'), self.rep))
         self.photo_commands.append(BotCommand('rep', 'send me a photo with caption "rep <place> <what>" to replace area to something.'))
