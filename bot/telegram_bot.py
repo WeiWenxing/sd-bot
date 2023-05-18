@@ -12,6 +12,7 @@ from telegram import Message, MessageEntity, Update, \
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, \
     filters, InlineQueryHandler, Application, CallbackContext, CallbackQueryHandler
 
+import webuiapi
 from webuiapi_helper import WebUIApiHelper, byteBufferOfImage, saveImage
 from config import telegram_config
 from queueinfo import QueueInfo
@@ -31,6 +32,12 @@ def message_text(message: Message) -> str:
         message_text = message_text.replace(text, '').strip()
 
     return message_text if len(message_text) > 0 else ''
+
+
+def save_to_file(file_name, contents):
+    fh = open(file_name, 'w')
+    fh.write(contents)
+    fh.close()
 
 
 def add_txt_to_img(image: Image, txt, font_size=60, angle=0, color=(128, 128, 128), alpha=0.2) -> Image:
@@ -132,6 +139,8 @@ class SDBot:
             logging.info(f'New image generation request received from user {update.message.from_user.name}')
             result = self.webapihelper.txt2img_op(image_query)
             await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
+            info = self.webapihelper.info_op(result.image)
+            logging.info(info)
 
     async def show_model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -204,6 +213,7 @@ class SDBot:
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        logging.info(update.message)
         self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
         await update.message.reply_text("change clothes: ", reply_markup=reply_markup)
 
@@ -295,7 +305,8 @@ class SDBot:
             await K.delete()
             message = update.message
             bot = context.bot
-            if message.photo and len(message.photo) == 1:
+            logging.info(message)
+            if message.photo and not message.media_group_id:
                 img_ori = await self.down_image(bot, message)
                 # img = add_txt_to_img(img_ori, WATERMARK)
                 # await message.reply_photo(byteBufferOfImage(img, 'JPEG'))
@@ -384,7 +395,10 @@ class SDBot:
                 # result = self.webapihelper.breast_repair_op(img, precision=100, padding=4.0, denoising_strength=0.7, batch_count=2)
                 # for image in result.images:
                 #     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
-                result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=4)
+                result = self.webapihelper.breast_repair_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+                result = self.webapihelper.breast_repair1_op(img, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
                 for image in result.images:
                     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -622,6 +636,28 @@ class SDBot:
                 for image in result.images:
                     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
+    async def cum(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img = await self.down_image(bot, message, enhance_face=False)
+                result = self.webapihelper.cum_op(img, precision=65, denoising_strength=0.8, batch_size=4)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
     async def png_info(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
@@ -641,9 +677,11 @@ class SDBot:
             logging.info(message)
             if message.document:
                 img = await self.down_image(bot, message, enhance_face=False, is_doc=True)
+                await message.reply_photo(byteBufferOfImage(img, 'PNG'))
                 result = self.webapihelper.info_op(img)
+                save_to_file("download/tmp.txt", webuiapi.b64_img(img))
                 logging.info(result)
-                await message.reply_text(f'{result.info}\n{result.parameters}')
+                await message.reply_text(f'image info: {result.info}\n{result.parameters}')
 
     async def high(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -854,7 +892,7 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|ll|cc|up|lower|ext|rep|hi|clip|all'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|ll|cc|up|lower|ext|rep|hi|clip|all|cum'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         self.photo_commands.append(BotCommand('bg', 'send me a photo with caption "bg" to change background.'))
@@ -891,6 +929,8 @@ class SDBot:
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('all'), self.all))
         self.photo_commands.append(BotCommand('all', 'send me a photo with caption "all" to nude 1girl all except face.'))
+
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('cum'), self.cum))
 
         application.add_handler(MessageHandler(filters.Document.IMAGE, self.png_info))
 

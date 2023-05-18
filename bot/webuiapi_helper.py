@@ -96,7 +96,8 @@ class WebUIApiHelper:
     def nude1_op(self, photo):
         prompt_positive = f'[txt2mask mode="add" precision=100.0 padding=8.0 smoothing=20.0 negative_mask="face|mask|arms|hands" neg_precision=100.0 neg_padding=0.0 neg_smoothing=20.0]dress|clothes|bra|vest|underwear|skirts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), 3d, (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin, lustrous skin, clavicle, cleavage, slim waist, very short hair, arms in back, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>,'
         logging.info(f'prompt_positive: {prompt_positive}')
-        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10, alwayson_scripts=self.alwayson_scripts_tiled_vae)
+        # result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10, alwayson_scripts=self.alwayson_scripts_tiled_vae)
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=1, denoising_strength=1, inpainting_fill=1, steps=10)
         return result
 
     def bg_op(self, photo, bg):
@@ -126,8 +127,22 @@ class WebUIApiHelper:
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_size, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
         return result
 
+    def cum_op(self, photo, precision, denoising_strength, batch_size):
+        prompt_positive = f'[txt2mask mode="add" precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]dress|bra|underwear|pants[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, procelain skin,  clavicle, large breasts, cleavage, slim waist, (cum on body:1.6), an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>'
+
+        logging.info(f'prompt_positive: {prompt_positive}')
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_size, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
+        return result
+
     def breast_repair_op(self, photo, precision, padding, denoising_strength, batch_count, breast="large breasts,"):
         prompt_positive = f'[txt2mask mode="add" precision={precision} padding={padding} smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]breasts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, (absolutely nude:1.6), naked breasts, {breast} perfect breasts, smooth fair skin, procelain skin, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastinclassBetter_v141:0.8>'
+
+        logging.info(f'prompt_positive: {prompt_positive}')
+        result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
+        return result
+
+    def breast_repair1_op(self, photo, precision, padding, denoising_strength, batch_count, breast="large breasts,"):
+        prompt_positive = f'[txt2mask mode="add" precision={precision} padding={padding} smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]breasts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, (absolutely nude:1.6), naked breasts, {breast} perfect breasts, smooth fair skin, procelain skin, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastsOnGlass_v10:0.8>'
 
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
