@@ -72,6 +72,10 @@ def add_txt_to_img(image: Image, txt, font_size=60, angle=0, color=(128, 128, 12
     result = enhance.enhance(1.0 / (1 - alpha))
     return result
 
+
+cache_msgs = {}
+
+
 class SDBot:
     """
     Class representing a ChatGPT Telegram Bot.
@@ -214,7 +218,11 @@ class SDBot:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         logging.info(update.message)
-        self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
+        # self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
+        img_ori = await self.down_image(context.bot, update.message)
+        chat_id = str(update.message.chat_id)
+        logging.info(chat_id)
+        cache_msgs[chat_id] = img_ori
         await update.message.reply_text("change clothes: ", reply_markup=reply_markup)
 
     async def draw_dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -224,13 +232,16 @@ class SDBot:
         logging.info(clothes)
         message = query.message
         logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
         bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
 
-        if self.webapihelper.cache_image is not None:
-            result = self.webapihelper.clothes_op(self.webapihelper.cache_image, clothes)
+        if img_ori is not None:
+            result = self.webapihelper.clothes_op(img_ori, clothes)
             for img in result.images:
                 await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
         else:
@@ -251,7 +262,11 @@ class SDBot:
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
+        # self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
+        img_ori = await self.down_image(context.bot, update.message)
+        chat_id = str(update.message.chat_id)
+        logging.info(chat_id)
+        cache_msgs[chat_id] = img_ori
         await update.message.reply_text("change background: ", reply_markup=reply_markup)
 
     async def draw_bg(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -261,13 +276,16 @@ class SDBot:
         logging.info(bg)
         message = query.message
         logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
         bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
 
-        if self.webapihelper.cache_image is not None:
-            result = self.webapihelper.bg_op(self.webapihelper.cache_image, bg)
+        if img_ori is not None:
+            result = self.webapihelper.bg_op(img_ori, bg)
             for img in result.images:
                 type_mode = 'PNG' if img.mode == "RGBA" else 'JPEG'
                 await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, type_mode), caption=f'{bg}')
@@ -803,6 +821,10 @@ class SDBot:
         """
         Checks if the user is allowed to use the bot.
         """
+        # delete cache image
+        chat_id = str(update.message.chat_id)
+        cache_msgs.pop(chat_id, None)
+
         if self.config['allowed_user_ids'] == '*':
             return True
         
