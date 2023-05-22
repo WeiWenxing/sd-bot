@@ -114,7 +114,7 @@ class WebUIApiHelper:
         return result
 
     def nude_lower_op(self, photo, precision, denoising_strength, batch_count):
-        prompt_positive = f'[txt2mask mode="add" show precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]skirts|shorts|underpants|pants[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, slim waist, very short hair, an extremely delicate and beautiful, extremely detailed,intricate,'
+        prompt_positive = f'[txt2mask mode="add" show precision={precision} padding=4.0 smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]skirts|shorts|underpants|pants[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, 1girl, extremely delicate facial, perfect female figure, (absolutely nude:1.6), smooth fair skin, slim waist, very short hair, an extremely delicate and beautiful, extremely detailed,intricate, <lora:newb_0.1:0.3>'
 
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
@@ -279,7 +279,7 @@ class WebUIApiHelper:
 
     def txt2img_op(self, prompt):
         prompt_neg= r'(worst quality, low quality:1.4), (fuze:1.4), (worst quality:1.1), (low quality:1.4:1.1), lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurrypolar,bad body,bad proportions,gross proportions,text,error,missing fingers, missing arms,missing legs, extra digit, extra fingers,fewer digits,extra limbs,extra arms,extra legs,malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands, cropped,poorly drawn hands,poorly drawn face,mutation,deformed,worst quality,low quality, normal quality, blurry,ugly,duplicate,morbid,mutilated,out of frame, body out of frame,'
-        result = self.api.txt2img(prompt=prompt, negative_prompt=prompt_neg, width=512, height=768, batch_size=2, denoising_strength=0.45, enable_hr=True, hr_second_pass_steps=10, hr_scale=1.5, restore_faces=True, steps=10, seed=-1, sampler_name='DPM++ 2M Karras', )
+        result = self.api.txt2img(prompt=prompt, negative_prompt=prompt_neg, width=512, height=768, batch_size=4, denoising_strength=0.45, enable_hr=True, hr_second_pass_steps=10, hr_scale=1.5, restore_faces=True, steps=10, seed=-1, sampler_name='DPM++ 2M Karras', )
         return result
 
     def out_op(self, prompt):

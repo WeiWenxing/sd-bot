@@ -142,9 +142,8 @@ class SDBot:
 
             logging.info(f'New image generation request received from user {update.message.from_user.name}')
             result = self.webapihelper.txt2img_op(image_query)
-            await message.reply_photo(byteBufferOfImage(result.image, 'JPEG'))
-            info = self.webapihelper.info_op(result.image)
-            logging.info(info)
+            for image in result.images:
+                await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
     async def show_model(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
@@ -153,10 +152,10 @@ class SDBot:
             return
         keyboard = [
             [
-                InlineKeyboardButton("majic", callback_data="majicmixRealistic_v4.inpainting"),
-                InlineKeyboardButton("GF3.2", callback_data="GuoFeng3.2"),
-                InlineKeyboardButton("mix", callback_data="majicmixRealistic_v4"),
-                InlineKeyboardButton("GF3.2Inp", callback_data="GuoFeng3.2Inpainting.inpainting"),
+                InlineKeyboardButton("majicInp", callback_data="majicmixRealistic_v4.inpainting"),
+                InlineKeyboardButton("GF3", callback_data="GuoFeng3.2"),
+                InlineKeyboardButton("majicv4", callback_data="majicmixRealistic_v4"),
+                InlineKeyboardButton("GF3Inp", callback_data="GuoFeng3.2Inpainting.inpainting"),
                 InlineKeyboardButton("ubInp", callback_data="uberRealisticPornMerge_urpmv13Inpainting"),
             ],
             #[InlineKeyboardButton("Option 3", callback_data="3")],
