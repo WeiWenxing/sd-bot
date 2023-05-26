@@ -203,7 +203,7 @@ class SDBot:
             [
                 InlineKeyboardButton("礼服", callback_data="see-through:evening dress, bare shoulders,"),
                 InlineKeyboardButton("旗袍", callback_data="see-through, cheongsam,"),
-                InlineKeyboardButton("国风", callback_data="hanfu, sheer tulle, see-through,"),
+                InlineKeyboardButton("透视", callback_data="see-through,"),
                 InlineKeyboardButton("婚纱", callback_data="wedding dress"),
                 InlineKeyboardButton("泳装", callback_data="bikini"),
             ],
@@ -240,7 +240,7 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.clothes_op(img_ori, clothes)
+            result = self.webapihelper.clothes_op(img_ori, clothes, batch_size=4)
             for img in result.images:
                 await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
         else:
@@ -546,6 +546,32 @@ class SDBot:
                 for image in result.images:
                     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
+    async def pussy(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img_ori = await self.down_image(bot, message)
+
+                img = img_ori
+                logging.info(f"=============================pussy===============================")
+                result = self.webapihelper.pussy_op(img, 80, 1, 1)
+                logging.info(result)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
     async def ext(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self.is_allowed(update, context):
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
@@ -650,6 +676,28 @@ class SDBot:
             if message.photo:
                 img = await self.down_image(bot, message, enhance_face=False)
                 result = self.webapihelper.nude_repair_op(img, precision=65, denoising_strength=0.8, batch_size=4)
+                for image in result.images:
+                    await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
+
+    async def skin(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self.is_allowed(update, context):
+            logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
+            await self.send_disallowed_message(update, context)
+            return
+        logging.info(f'queue is: {self.queue.size}')
+        if 0 < self.queue_max < self.queue.size:
+            logging.info("queue is full, please wait for a minute and retry！")
+            await update.message.reply_text('queue is full, please wait for a minute and retry！')
+            return
+
+        K = await update.message.reply_text(f"In line, there are {self.queue.size} people ahead")
+        async with self.queue:
+            await K.delete()
+            message = update.message
+            bot = context.bot
+            if message.photo:
+                img = await self.down_image(bot, message, enhance_face=False)
+                result = self.webapihelper.skin_op(img, color="229,205,197", alpha=40.0)
                 for image in result.images:
                     await message.reply_photo(byteBufferOfImage(image, 'JPEG'))
 
@@ -913,7 +961,7 @@ class SDBot:
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|ll|cc|up|lower|ext|rep|hi|clip|all|cum'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|ll|cc|up|lower|pussy|ext|rep|hi|clip|skin|all|cum'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         self.photo_commands.append(BotCommand('bg', 'send me a photo with caption "bg" to change background.'))
@@ -936,6 +984,9 @@ class SDBot:
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('lower'), self.lower))
         self.photo_commands.append(BotCommand('lower', 'send me a photo with caption "lower" to nude lower body.'))
 
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('pussy'), self.pussy))
+        self.photo_commands.append(BotCommand('pussy', 'send me a photo with caption "pussy" to repair pussy.'))
+
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('ext'), self.ext))
         self.photo_commands.append(BotCommand('ext', 'send me a photo with caption "ext" to out painting picture.'))
 
@@ -947,6 +998,9 @@ class SDBot:
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('clip'), self.clip))
         # self.photo_commands.append(BotCommand('clip', 'send me a photo with caption "clip" to change clothes to lace bra.'))
+
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('skin'), self.skin))
+        self.photo_commands.append(BotCommand('skin', 'send me a photo with caption "skin" to repair skin.'))
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('all'), self.all))
         self.photo_commands.append(BotCommand('all', 'send me a photo with caption "all" to nude 1girl all except face.'))
