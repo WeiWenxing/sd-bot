@@ -214,6 +214,12 @@ class SDBot:
                 InlineKeyboardButton("制服", callback_data="police_uniform,"),
                 InlineKeyboardButton("学院", callback_data="school_uniform,"),
             ],
+            [
+                InlineKeyboardButton("高清", callback_data="high"),
+                InlineKeyboardButton("扩展", callback_data="ext"),
+                InlineKeyboardButton("去衣", callback_data="trip"),
+                InlineKeyboardButton("修咪", callback_data="mimi"),
+            ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         logging.info(update.message)
@@ -240,9 +246,111 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.clothes_op(img_ori, clothes, batch_size=4)
+            result = self.webapihelper.clothes_op(img_ori, clothes, batch_size=2)
             for img in result.images:
                 await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+        else:
+            logging.info("no photo!")
+
+    async def draw_high(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        clothes = query.data
+        logging.info(clothes)
+        message = query.message
+        logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
+        bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if img_ori is not None:
+            result = self.webapihelper.high1_op(img_ori, upscaling_resize=2)
+            for img in result.images:
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+        else:
+            logging.info("no photo!")
+
+    async def draw_ext(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        clothes = query.data
+        logging.info(clothes)
+        message = query.message
+        logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
+        bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if img_ori is not None:
+            result = self.webapihelper.get_ext_image(img_ori)
+            await bot.send_photo(message.chat.id, photo=byteBufferOfImage(result, 'JPEG'))
+
+            result = self.webapihelper.ext_ori_op(result, 1, 2)
+            for image in result.images:
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, 'JPEG'))
+        else:
+            logging.info("no photo!")
+
+    async def draw_trip(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        clothes = query.data
+        logging.info(clothes)
+        message = query.message
+        logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
+        bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if img_ori is not None:
+            result = self.webapihelper.nude1_op(img_ori)
+            for image in result.images:
+                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+            result = self.webapihelper.nude_op(img_ori)
+            for image in result.images:
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+            result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
+            for image in result.images:
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+        else:
+            logging.info("no photo!")
+
+    async def draw_mi(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        clothes = query.data
+        logging.info(clothes)
+        message = query.message
+        logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
+        bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if img_ori is not None:
+            result = self.webapihelper.breast_repair_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
+            for image in result.images:
+                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+            result = self.webapihelper.breast_repair1_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
+            for image in result.images:
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
         else:
             logging.info("no photo!")
 
@@ -960,8 +1068,12 @@ class SDBot:
         application.add_handler(CallbackQueryHandler(callback=self.draw_dress, pattern='.*dress|.*suit|.*wear|.*uniform|crotchless|armor|hot|bikini|see|.*hanfu'))
         # application.add_handler(CallbackQueryHandler(callback=self.clothes))
         application.add_handler(CallbackQueryHandler(callback=self.draw_bg, pattern='.*beach|grass|space|street|mountain'))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_high, pattern='high'))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_ext, pattern='ext'))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_trip, pattern='trip'))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_mi, pattern='mimi'))
 
-        application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('dress|bg|mi|hand|ll|cc|up|lower|pussy|ext|rep|hi|clip|skin|all|cum'), self.trip))
+        application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('trip'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('bg'), self.show_bg))
         self.photo_commands.append(BotCommand('bg', 'send me a photo with caption "bg" to change background.'))
@@ -1008,10 +1120,12 @@ class SDBot:
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('cum'), self.cum))
 
         application.add_handler(MessageHandler(filters.Document.IMAGE, self.png_info))
+        application.add_handler(MessageHandler(filters.PHOTO, self.show_dress))
+        # application.add_handler(MessageHandler(filters.PHOTO & ~filters.Caption('trip|dress|bg|mi|hand|ll|cc|up|lower|pussy|ext|rep|hi|clip|skin|all|cum'), self.show_dress()))
 
         # application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex('all'), self.all))
 
-        #application.add_error_handler(self.error_handler)
+        # application.add_error_handler(self.error_handler)
 
         # application.run_polling()
         await application.initialize()

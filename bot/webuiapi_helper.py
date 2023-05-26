@@ -183,7 +183,7 @@ class WebUIApiHelper:
         result = self.api.extra_single_image(image=image, upscaler_1=webuiapi.Upscaler.ESRGAN_4x, gfpgan_visibility=1, upscaling_resize=upscaling_resize)
         return result
 
-    def high1_op(self, image, upscaling_resize):
+    def high1_op(self, image, upscaling_resize=2):
         result = self.api.extra_single_image(image=image, upscaler_1="R-ESRGAN 4x+", gfpgan_visibility=1, upscaling_resize=upscaling_resize)
         # result = self.api.extra_single_image(image=image, upscaler_1="4x-UltraSharp", gfpgan_visibility=1, upscaling_resize=upscaling_resize)
         return result
