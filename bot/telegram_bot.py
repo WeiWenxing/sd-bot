@@ -217,6 +217,7 @@ class SDBot:
             [
                 InlineKeyboardButton("高清", callback_data="high"),
                 InlineKeyboardButton("扩展", callback_data="ext"),
+                InlineKeyboardButton("去码", callback_data="depixlate"),
                 InlineKeyboardButton("去衣", callback_data="trip"),
                 InlineKeyboardButton("修咪", callback_data="mimi"),
             ],
@@ -395,6 +396,38 @@ class SDBot:
                     await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
                 result = self.webapihelper.breast_repair1_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
                 for image in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+        else:
+            logging.info("no photo!")
+
+    async def draw_depixlate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logging.info(query)
+        clothes = query.data
+        logging.info(clothes)
+        message = query.message
+        logging.info(message)
+        chat_id = str(message.chat_id)
+        logging.info(chat_id)
+        bot = context.bot
+        img_ori = cache_msgs.get(chat_id, None)
+
+        # CallbackQueries need to be answered, even if no notification to the user is needed
+        await query.answer()
+
+        if img_ori is not None:
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
+
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.depixlate_op(img_ori)
+                for image in result.images:
+                    type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
                     await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
         else:
             logging.info("no photo!")
@@ -1126,6 +1159,7 @@ class SDBot:
         application.add_handler(CallbackQueryHandler(callback=self.draw_ext, pattern='ext'))
         application.add_handler(CallbackQueryHandler(callback=self.draw_trip, pattern='trip'))
         application.add_handler(CallbackQueryHandler(callback=self.draw_mi, pattern='mimi'))
+        application.add_handler(CallbackQueryHandler(callback=self.draw_depixlate, pattern='depixlate'))
 
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('trip'), self.trip))
         application.add_handler(MessageHandler(filters.PHOTO & filters.Caption('dress'), self.show_dress))
