@@ -246,9 +246,18 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.clothes_op(img_ori, clothes, batch_size=2)
-            for img in result.images:
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
+
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.clothes_op(img_ori, clothes, batch_size=2)
+                for img in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
         else:
             logging.info("no photo!")
 
@@ -268,9 +277,18 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.high1_op(img_ori, upscaling_resize=2)
-            for img in result.images:
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
+
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.high1_op(img_ori, upscaling_resize=2)
+                for img in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
         else:
             logging.info("no photo!")
 
@@ -290,12 +308,21 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.get_ext_image(img_ori)
-            await bot.send_photo(message.chat.id, photo=byteBufferOfImage(result, 'JPEG'))
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
 
-            result = self.webapihelper.ext_ori_op(result, 1, 2)
-            for image in result.images:
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, 'JPEG'))
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.get_ext_image(img_ori)
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(result, 'JPEG'))
+
+                result = self.webapihelper.ext_ori_op(result, 1, 2)
+                for image in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, 'JPEG'))
         else:
             logging.info("no photo!")
 
@@ -315,16 +342,25 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.nude1_op(img_ori)
-            for image in result.images:
-                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
-            result = self.webapihelper.nude_op(img_ori)
-            for image in result.images:
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
-            result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
-            for image in result.images:
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
+
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.nude1_op(img_ori)
+                for image in result.images:
+                    type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                result = self.webapihelper.nude_op(img_ori)
+                for image in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
+                for image in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
         else:
             logging.info("no photo!")
 
@@ -344,13 +380,22 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.breast_repair_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
-            for image in result.images:
-                type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
-            result = self.webapihelper.breast_repair1_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
-            for image in result.images:
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
+
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.breast_repair_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
+                for image in result.images:
+                    type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                result = self.webapihelper.breast_repair1_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
+                for image in result.images:
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
         else:
             logging.info("no photo!")
 
@@ -392,10 +437,19 @@ class SDBot:
         await query.answer()
 
         if img_ori is not None:
-            result = self.webapihelper.bg_op(img_ori, bg)
-            for img in result.images:
-                type_mode = 'PNG' if img.mode == "RGBA" else 'JPEG'
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, type_mode), caption=f'{bg}')
+            logging.info(f'queue is: {self.queue.size}')
+            if 0 < self.queue_max < self.queue.size:
+                logging.info("queue is full, please wait for a minute and retry！")
+                await update.message.reply_text('queue is full, please wait for a minute and retry！')
+                return
+
+            K = await bot.send_message(message.chat.id, f"In line, there are {self.queue.size} people ahead")
+            async with self.queue:
+                await K.delete()
+                result = self.webapihelper.bg_op(img_ori, bg)
+                for img in result.images:
+                    type_mode = 'PNG' if img.mode == "RGBA" else 'JPEG'
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, type_mode), caption=f'{bg}')
         else:
             logging.info("no photo!")
 
