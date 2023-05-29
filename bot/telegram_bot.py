@@ -73,7 +73,31 @@ def add_txt_to_img(image: Image, txt, font_size=60, angle=0, color=(128, 128, 12
     return result
 
 
-cache_msgs = {}
+# cache_msgs = {}
+keyboard = [
+    [
+        InlineKeyboardButton("礼服", callback_data="see-through:evening dress, bare shoulders,"),
+        InlineKeyboardButton("旗袍", callback_data="see-through, cheongsam,"),
+        InlineKeyboardButton("透视", callback_data="see-through,"),
+        InlineKeyboardButton("婚纱", callback_data="wedding dress"),
+        InlineKeyboardButton("泳装", callback_data="bikini"),
+    ],
+    [
+        InlineKeyboardButton("运动服", callback_data="sportswear"),
+        InlineKeyboardButton("情趣", callback_data="crotchless,"),
+        InlineKeyboardButton("内衣", callback_data="hot underware,"),
+        InlineKeyboardButton("制服", callback_data="police_uniform,"),
+        InlineKeyboardButton("学院", callback_data="school_uniform,"),
+    ],
+    [
+        InlineKeyboardButton("高清", callback_data="high"),
+        InlineKeyboardButton("扩展", callback_data="ext"),
+        InlineKeyboardButton("去码", callback_data="depixlate"),
+        InlineKeyboardButton("去衣", callback_data="trip"),
+        InlineKeyboardButton("修咪", callback_data="mimi"),
+    ],
+]
+reply_markup = InlineKeyboardMarkup(keyboard)
 
 
 class SDBot:
@@ -199,37 +223,14 @@ class SDBot:
             logging.warning(f'User {update.message.from_user.name}: {update.message.from_user.id} is not allowed to use this bot')
             await self.send_disallowed_message(update, context)
             return
-        keyboard = [
-            [
-                InlineKeyboardButton("礼服", callback_data="see-through:evening dress, bare shoulders,"),
-                InlineKeyboardButton("旗袍", callback_data="see-through, cheongsam,"),
-                InlineKeyboardButton("透视", callback_data="see-through,"),
-                InlineKeyboardButton("婚纱", callback_data="wedding dress"),
-                InlineKeyboardButton("泳装", callback_data="bikini"),
-            ],
-            [
-                InlineKeyboardButton("运动服", callback_data="sportswear"),
-                InlineKeyboardButton("情趣", callback_data="crotchless,"),
-                InlineKeyboardButton("内衣", callback_data="hot underware,"),
-                InlineKeyboardButton("制服", callback_data="police_uniform,"),
-                InlineKeyboardButton("学院", callback_data="school_uniform,"),
-            ],
-            [
-                InlineKeyboardButton("高清", callback_data="high"),
-                InlineKeyboardButton("扩展", callback_data="ext"),
-                InlineKeyboardButton("去码", callback_data="depixlate"),
-                InlineKeyboardButton("去衣", callback_data="trip"),
-                InlineKeyboardButton("修咪", callback_data="mimi"),
-            ],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+
         logging.info(update.message)
         # self.webapihelper.cache_image = await self.get_img_from_msg(context.bot, update.message)
-        img_ori = await self.down_image(context.bot, update.message)
-        chat_id = str(update.message.chat_id)
-        logging.info(chat_id)
-        cache_msgs[chat_id] = img_ori
-        await update.message.reply_text("change clothes: ", reply_markup=reply_markup)
+        # img_ori = await self.down_image(context.bot, update.message)
+        # chat_id = str(update.message.chat_id)
+        # logging.info(chat_id)
+        # cache_msgs[chat_id] = img_ori
+        await update.message.reply_photo(photo=update.message.photo[-1].file_id, reply_markup=reply_markup)
 
     async def draw_dress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
@@ -241,7 +242,7 @@ class SDBot:
         chat_id = str(message.chat_id)
         logging.info(chat_id)
         bot = context.bot
-        img_ori = cache_msgs.get(chat_id, None)
+        img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
@@ -258,7 +259,7 @@ class SDBot:
                 await K.delete()
                 result = self.webapihelper.clothes_op(img_ori, clothes, batch_size=2)
                 for img in result.images:
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}', reply_markup=reply_markup)
         else:
             logging.info("no photo!")
 
@@ -271,8 +272,7 @@ class SDBot:
         logging.info(message)
         chat_id = str(message.chat_id)
         logging.info(chat_id)
-        bot = context.bot
-        img_ori = cache_msgs.get(chat_id, None)
+        img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
@@ -289,7 +289,7 @@ class SDBot:
                 await K.delete()
                 result = self.webapihelper.high1_op(img_ori, upscaling_resize=2)
                 for img in result.images:
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}')
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(img, 'JPEG'), caption=f'{clothes}', reply_markup=reply_markup)
         else:
             logging.info("no photo!")
 
@@ -303,7 +303,7 @@ class SDBot:
         chat_id = str(message.chat_id)
         logging.info(chat_id)
         bot = context.bot
-        img_ori = cache_msgs.get(chat_id, None)
+        img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
@@ -319,11 +319,11 @@ class SDBot:
             async with self.queue:
                 await K.delete()
                 result = self.webapihelper.get_ext_image(img_ori)
-                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(result, 'JPEG'))
+                await bot.send_photo(message.chat.id, photo=byteBufferOfImage(result, 'JPEG'), reply_markup=reply_markup)
 
                 result = self.webapihelper.ext_ori_op(result, 1, 2)
                 for image in result.images:
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, 'JPEG'))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, 'JPEG'), reply_markup=reply_markup)
         else:
             logging.info("no photo!")
 
@@ -337,7 +337,7 @@ class SDBot:
         chat_id = str(message.chat_id)
         logging.info(chat_id)
         bot = context.bot
-        img_ori = cache_msgs.get(chat_id, None)
+        img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
@@ -355,13 +355,13 @@ class SDBot:
                 result = self.webapihelper.nude1_op(img_ori)
                 for image in result.images:
                     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode), reply_markup=reply_markup)
                 result = self.webapihelper.nude_op(img_ori)
                 for image in result.images:
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode), reply_markup=reply_markup)
                 result = self.webapihelper.nude_repair_op(img_ori, precision=65, denoising_strength=1.0, batch_size=1)
                 for image in result.images:
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode), reply_markup=reply_markup)
         else:
             logging.info("no photo!")
 
@@ -375,7 +375,7 @@ class SDBot:
         chat_id = str(message.chat_id)
         logging.info(chat_id)
         bot = context.bot
-        img_ori = cache_msgs.get(chat_id, None)
+        img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
@@ -393,10 +393,10 @@ class SDBot:
                 result = self.webapihelper.breast_repair_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
                 for image in result.images:
                     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode), reply_markup=reply_markup)
                 result = self.webapihelper.breast_repair1_op(img_ori, precision=85, padding=4.0, denoising_strength=0.7, batch_count=2)
                 for image in result.images:
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode), reply_markup=reply_markup)
         else:
             logging.info("no photo!")
 
@@ -410,7 +410,7 @@ class SDBot:
         chat_id = str(message.chat_id)
         logging.info(chat_id)
         bot = context.bot
-        img_ori = cache_msgs.get(chat_id, None)
+        img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         await query.answer()
@@ -428,7 +428,7 @@ class SDBot:
                 result = self.webapihelper.depixlate_op(img_ori)
                 for image in result.images:
                     type_mode = 'PNG' if image.mode == "RGBA" else 'JPEG'
-                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode))
+                    await bot.send_photo(message.chat.id, photo=byteBufferOfImage(image, type_mode), reply_markup=reply_markup)
         else:
             logging.info("no photo!")
 

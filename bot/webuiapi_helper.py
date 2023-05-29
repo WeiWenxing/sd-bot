@@ -159,8 +159,8 @@ class WebUIApiHelper:
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_size, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
         return result
 
-    def breast_repair_op(self, photo, precision, padding, denoising_strength, batch_count, breast="large breasts,"):
-        prompt_positive = f'[txt2mask mode="add" precision={precision} padding={padding} smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0]breasts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, (absolutely nude:1.6), naked breasts, {breast} perfect breasts, smooth fair skin, procelain skin, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastinclassBetter_v141:0.8>'
+    def breast_repair_op(self, photo, precision, padding, denoising_strength, batch_count, breast="large breasts,", color="229,205,197", alpha=40.0):
+        prompt_positive = f'[txt2mask mode="add" precision={precision} padding={padding} smoothing=20.0 negative_mask="face" neg_precision=100.0 neg_padding=4.0 neg_smoothing=20.0 sketch_color={color} sketch_alpha={alpha}]breasts[/txt2mask](8k, RAW photo, best quality, masterpiece:1.2), (realistic, photo-realistic:1.37), fmasterpiecel, (absolutely nude:1.6), naked breasts, {breast} perfect breasts, smooth fair skin, procelain skin, an extremely delicate and beautiful, extremely detailed,intricate, (breasts pressed against glass:1.3), <lora:breastinclassBetter_v141:0.8>'
 
         logging.info(f'prompt_positive: {prompt_positive}')
         result = self.api.img2img(images=[photo], prompt=prompt_positive, negative_prompt=self.prompt_negative, cfg_scale=7, batch_size=batch_count, denoising_strength=denoising_strength, inpainting_fill=1, steps=10)
