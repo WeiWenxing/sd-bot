@@ -73,7 +73,7 @@ def add_txt_to_img(image: Image, txt, font_size=60, angle=0, color=(128, 128, 12
     return result
 
 
-# cache_msgs = {}
+cache_msgs = {}
 keyboard = [
     [
         InlineKeyboardButton("礼服", callback_data="see-through:evening dress, bare shoulders,"),
@@ -1063,9 +1063,6 @@ class SDBot:
         """
         Checks if the user is allowed to use the bot.
         """
-        # delete cache image
-        chat_id = str(update.message.chat_id)
-        cache_msgs.pop(chat_id, None)
 
         if self.config['allowed_user_ids'] == '*':
             return True
