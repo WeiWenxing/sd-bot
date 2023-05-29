@@ -272,6 +272,7 @@ class SDBot:
         logging.info(message)
         chat_id = str(message.chat_id)
         logging.info(chat_id)
+        bot = context.bot
         img_ori = await self.down_image(bot, message)
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
